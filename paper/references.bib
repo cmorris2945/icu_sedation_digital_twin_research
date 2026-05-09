@@ -1,0 +1,266 @@
+% =====================================================================
+% references.bib
+% =====================================================================
+%
+% Bibliography file for the ICU Sedation Digital Twin paper. Each
+% entry follows BibTeX format which biblatex processes automatically
+% to generate properly formatted citations and bibliography in the
+% final document.
+%
+% Entries are organized by category for easier navigation. The
+% categories are mechanistic models, machine learning methods,
+% digital twins in medicine, ICU sedation literature, MIMIC-IV
+% related references, and reproducibility tools. When you add new
+% references during writing, please add them to the appropriate
+% category section to maintain organization.
+%
+% AUTHOR: Christopher Morris
+% =====================================================================
+
+
+% =====================================================================
+% MECHANISTIC PHARMACOLOGICAL MODELS
+% =====================================================================
+% These references describe the pharmacokinetic and pharmacodynamic
+% models we build on. The Eleveld 2018 paper is our primary
+% mechanistic foundation and must be cited prominently.
+
+@article{eleveld_2018,
+    title={Pharmacokinetic-pharmacodynamic model for propofol for broad application in anaesthesia and sedation},
+    author={Eleveld, Douglas J and Colin, P and Absalom, Anthony R and Struys, Michel M R F},
+    journal={British Journal of Anaesthesia},
+    volume={120},
+    number={5},
+    pages={942--959},
+    year={2018},
+    publisher={Elsevier},
+    doi={10.1016/j.bja.2018.01.018}
+}
+
+@article{vellinga_2021,
+    title={Prospective clinical validation of the Eleveld propofol pharmacokinetic-pharmacodynamic model in general anaesthesia},
+    author={Vellinga, R and Hannivoort, L N and Introna, M and Touw, D J and Absalom, A R and Eleveld, D J and others},
+    journal={British Journal of Anaesthesia},
+    volume={126},
+    number={2},
+    pages={386--394},
+    year={2021},
+    publisher={Elsevier},
+    doi={10.1016/j.bja.2020.10.027}
+}
+
+% =====================================================================
+% MACHINE LEARNING METHODS
+% =====================================================================
+% These references describe the machine learning algorithms we
+% evaluate. Each algorithm needs a citation when first introduced.
+
+@inproceedings{chen_xgboost_2016,
+    title={XGBoost: A Scalable Tree Boosting System},
+    author={Chen, Tianqi and Guestrin, Carlos},
+    booktitle={Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining},
+    pages={785--794},
+    year={2016},
+    publisher={ACM},
+    doi={10.1145/2939672.2939785}
+}
+
+@article{breiman_2001,
+    title={Random Forests},
+    author={Breiman, Leo},
+    journal={Machine Learning},
+    volume={45},
+    number={1},
+    pages={5--32},
+    year={2001},
+    publisher={Springer},
+    doi={10.1023/A:1010933404324}
+}
+
+@article{smola_svr_2004,
+    title={A tutorial on support vector regression},
+    author={Smola, Alex J and Sch{\"o}lkopf, Bernhard},
+    journal={Statistics and Computing},
+    volume={14},
+    number={3},
+    pages={199--222},
+    year={2004},
+    publisher={Springer},
+    doi={10.1023/B:STCO.0000035301.49549.88}
+}
+
+@article{hochreiter_lstm_1997,
+    title={Long Short-Term Memory},
+    author={Hochreiter, Sepp and Schmidhuber, J{\"u}rgen},
+    journal={Neural Computation},
+    volume={9},
+    number={8},
+    pages={1735--1780},
+    year={1997},
+    publisher={MIT Press},
+    doi={10.1162/neco.1997.9.8.1735}
+}
+
+@inproceedings{nair_relu_2010,
+    title={Rectified linear units improve restricted Boltzmann machines},
+    author={Nair, Vinod and Hinton, Geoffrey E},
+    booktitle={Proceedings of the 27th International Conference on Machine Learning},
+    pages={807--814},
+    year={2010}
+}
+
+@inproceedings{kingma_adam_2015,
+    title={Adam: A Method for Stochastic Optimization},
+    author={Kingma, Diederik P and Ba, Jimmy},
+    booktitle={International Conference on Learning Representations},
+    year={2015},
+    note={arXiv:1412.6980}
+}
+
+% =====================================================================
+% DIGITAL TWINS IN MEDICINE
+% =====================================================================
+% These references describe the digital twin concept and its
+% application to medical problems. The Corral-Acero 2020 paper
+% establishes the framework for thinking about model synergy
+% that motivates our approach.
+
+@article{corral_acero_2020,
+    title={The 'Digital Twin' to enable the vision of precision cardiology},
+    author={Corral-Acero, Jorge and Margara, Francesca and Marciniak, Maciej and Rodero, Cristobal and Loncaric, Filip and Feng, Yingjing and Gilbert, Andrew and Fernandes, Joao F and Bukhari, Hassaan A and Wajdan, Ali and others},
+    journal={European Heart Journal},
+    volume={41},
+    number={48},
+    pages={4556--4564},
+    year={2020},
+    publisher={Oxford University Press},
+    doi={10.1093/eurheartj/ehaa159}
+}
+
+@article{kovatchev_2025,
+    title={Human-machine co-adaptation to automated insulin delivery: a randomised clinical trial using digital twin technology},
+    author={Kovatchev, Boris P and Colmegna, Patricio and Pavan, Jacopo and Diaz Casta{\~n}eda, Jose Luis and Breton, Marc D},
+    journal={NPJ Digital Medicine},
+    volume={8},
+    number={1},
+    pages={253},
+    year={2025},
+    publisher={Nature Publishing Group}
+}
+
+@article{laubenbacher_2022,
+    title={Building digital twins of the human immune system: toward a roadmap},
+    author={Laubenbacher, Reinhard and Niarakis, Anna and Helikar, Tomas and An, Gary and Shapiro, Bruce and Malik-Sheriff, Raza and Sego, Timothy J and Knapp, Adam and Macklin, Paul and Glazier, James A},
+    journal={NPJ Digital Medicine},
+    volume={5},
+    number={1},
+    pages={64},
+    year={2022},
+    publisher={Nature Publishing Group}
+}
+
+% =====================================================================
+% MIMIC-IV AND DATA SOURCES
+% =====================================================================
+
+@article{johnson_mimiciv_2023,
+    title={MIMIC-IV, a freely accessible electronic health record dataset},
+    author={Johnson, Alistair E W and Bulgarelli, Lucas and Shen, Lu and Gayles, Alvin and Shammout, Ayad and Horng, Steven and Pollard, Tom J and Hao, Sicheng and Moody, Benjamin and Gow, Brian and others},
+    journal={Scientific Data},
+    volume={10},
+    pages={1},
+    year={2023},
+    publisher={Nature Publishing Group},
+    doi={10.1038/s41597-022-01899-x}
+}
+
+@article{goldberger_physionet_2000,
+    title={PhysioBank, PhysioToolkit, and PhysioNet: Components of a New Research Resource for Complex Physiologic Signals},
+    author={Goldberger, A L and Amaral, L A and Glass, L and Hausdorff, J M and Ivanov, P C and Mark, R G and Mietus, J E and Moody, G B and Peng, C K and Stanley, H E},
+    journal={Circulation},
+    volume={101},
+    number={23},
+    pages={e215--e220},
+    year={2000},
+    publisher={Lippincott Williams and Wilkins},
+    doi={10.1161/01.CIR.101.23.e215}
+}
+
+% =====================================================================
+% ICU SEDATION CLINICAL LITERATURE
+% =====================================================================
+% Add references to clinical guidelines and important ICU sedation
+% papers as the writing progresses. Examples include the SCCM
+% sedation guidelines and major ICU sedation trials.
+
+% Placeholder for SCCM sedation guidelines
+% @article{devlin_sedation_2018,
+%     title={Clinical Practice Guidelines for the Prevention and Management of Pain, Agitation/Sedation, Delirium, Immobility, and Sleep Disruption in Adult Patients in the ICU},
+%     author={Devlin, John W and others},
+%     journal={Critical Care Medicine},
+%     volume={46},
+%     number={9},
+%     pages={e825--e873},
+%     year={2018}
+% }
+
+
+% =====================================================================
+% RELATED HYBRID AND COMPETING METHODS
+% =====================================================================
+% These are methods we will compare against in our results section.
+
+% Neural-PK/PD reference - Lu et al. 2021
+% Need to verify exact citation details
+% @article{lu_neural_pkpd_2021,
+%     title={Neural pharmacokinetic-pharmacodynamic modeling},
+%     author={Lu, James and others},
+%     journal={Nature Machine Intelligence},
+%     year={2021}
+% }
+
+% Transformer-LSTM for anesthesia depth - He et al. 2023
+% @article{he_transformer_2023,
+%     title={Transformer-LSTM hybrid for anesthesia depth prediction},
+%     author={He, ...},
+%     journal={IEEE Transactions on Biomedical Engineering},
+%     year={2023}
+% }
+
+% Reinforcement learning for ICU sedation - Eghbali et al. 2021
+% @article{eghbali_rl_sedation_2021,
+%     title={Patient-specific sedation management via reinforcement learning},
+%     author={Eghbali, Niloufar and others},
+%     journal={Frontiers in Digital Health},
+%     year={2021}
+% }
+
+
+% =====================================================================
+% REPRODUCIBILITY AND METHODOLOGY
+% =====================================================================
+% References for methodological choices in our analysis.
+
+@article{wong_2011,
+    title={Color blindness},
+    author={Wong, Bang},
+    journal={Nature Methods},
+    volume={8},
+    number={6},
+    pages={441},
+    year={2011},
+    publisher={Nature Publishing Group},
+    doi={10.1038/nmeth.1618}
+}
+
+@article{kennedy_2001,
+    title={Bayesian calibration of computer models},
+    author={Kennedy, Marc C and O'Hagan, Anthony},
+    journal={Journal of the Royal Statistical Society: Series B},
+    volume={63},
+    number={3},
+    pages={425--464},
+    year={2001},
+    publisher={Wiley},
+    doi={10.1111/1467-9868.00294}
+}

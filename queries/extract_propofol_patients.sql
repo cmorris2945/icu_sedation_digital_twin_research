@@ -1,0 +1,55 @@
+-- =====================================================================
+-- extract_propofol_patients.sql
+-- =====================================================================
+--
+-- Purpose: Identify the patient cohort for our ICU sedation digital twin
+-- analysis. This query selects adult patients who received propofol during
+-- their ICU stay and had at least the minimum number of Sedation-Agitation
+-- Scale assessments needed for our temporal modeling approach.
+--
+-- This is the foundation query for our analysis. All other queries in this
+-- directory join against the patient list this query produces.
+--
+-- Output columns:
+--   stay_id: ICU stay identifier (links to other tables)
+--   gender: M or F
+--   age: patient age at admission
+--   weight: patient weight in kg (may be NULL if not recorded)
+--   height: patient height in cm (may be NULL if not recorded)
+--   has_AKI through has_ANY_Kidney: comorbidity flags (legacy from earlier
+--                                    kidney disease analysis, can be ignored)
+--
+-- Inclusion criteria:
+--   - Age >= 18 at admission
+--   - Received propofol at least once during ICU stay
+--   - Had at least 11 SAS observations during stay (10 for history + 1 to predict)
+--
+-- AUTHOR: Christopher Morris
+-- =====================================================================
+--
+-- TODO: Paste the actual query from BigQuery history here.
+-- The query should be of approximately this form:
+--
+-- WITH propofol_recipients AS (
+--   SELECT DISTINCT stay_id
+--   FROM `physionet-data.mimiciv_3_1_icu.inputevents`
+--   WHERE itemid IN (...) -- propofol-specific item IDs
+-- ),
+-- adult_icu_stays AS (
+--   SELECT s.stay_id, p.gender, ...
+--   FROM `physionet-data.mimiciv_3_1_icu.icustays` s
+--   JOIN `physionet-data.mimiciv_3_1_hosp.patients` p USING (subject_id)
+--   WHERE p.anchor_age >= 18
+-- ),
+-- sas_counts AS (
+--   SELECT stay_id, COUNT(*) as n_sas
+--   FROM `physionet-data.mimiciv_3_1_icu.chartevents`
+--   WHERE itemid IN (...) -- SAS-specific item IDs
+--   GROUP BY stay_id
+--   HAVING n_sas >= 11
+-- )
+-- SELECT s.stay_id, s.gender, s.age, s.weight, s.height,
+--        kidney comorbidity flags here
+-- FROM adult_icu_stays s
+-- JOIN propofol_recipients p USING (stay_id)
+-- JOIN sas_counts c USING (stay_id);

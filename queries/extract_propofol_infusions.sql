@@ -1,0 +1,48 @@
+-- =====================================================================
+-- extract_propofol_infusions.sql
+-- =====================================================================
+--
+-- Purpose: Extract all propofol infusion events for patients in our cohort.
+-- These records drive the pharmacokinetic simulation in our analysis pipeline,
+-- since the simulation needs to know when each patient received drug, at what
+-- rate, and for how long.
+--
+-- The output is one row per infusion event, where an event represents a
+-- continuous period during which a specific propofol rate was active. When
+-- the rate changes, that creates a new event record. When the infusion is
+-- paused or stopped, that ends the current event.
+--
+-- Output columns:
+--   stay_id: ICU stay identifier (joins to patient cohort)
+--   starttime: when this infusion event began
+--   endtime: when this infusion event ended  
+--   rate: infusion rate as a numeric value
+--   rateuom: unit of measurement for the rate (typically mcg/kg/min)
+--
+-- Important notes about units:
+--   The rate is stored in MIMIC-IV in the units that were used clinically,
+--   which for propofol is almost always mcg/kg/min. Our analysis pipeline
+--   converts this to mg/min using the patient's weight, since the Eleveld
+--   PK model expects absolute rates rather than weight-normalized rates.
+--   We preserve the original units in this output so the conversion is
+--   clearly visible in the analysis code rather than hidden in the query.
+--
+-- AUTHOR: Christopher Morris
+-- =====================================================================
+--
+-- TODO: Paste the actual query from BigQuery history here.
+-- The query should be of approximately this form:
+--
+-- SELECT 
+--   ie.stay_id,
+--   ie.starttime,
+--   ie.endtime,
+--   ie.rate,
+--   ie.rateuom
+-- FROM `physionet-data.mimiciv_3_1_icu.inputevents` ie
+-- INNER JOIN `<your-project>.<your-dataset>.kidney_subgroups_patients` p
+--   ON ie.stay_id = p.stay_id
+-- WHERE ie.itemid IN (...) -- propofol-specific item IDs
+--   AND ie.rate IS NOT NULL
+--   AND ie.rate > 0
+-- ORDER BY ie.stay_id, ie.starttime;

@@ -1,0 +1,343 @@
+% =====================================================================
+% main.tex
+% =====================================================================
+%
+% A Hybrid Mechanistic Machine Learning Framework for ICU Sedation 
+% Prediction: Personalizing Propofol Pharmacodynamics through 
+% Patient Specific Digital Twins
+%
+% This is the main LaTeX file for the paper. The structure follows
+% conventions for medical informatics journals like NPJ Digital Medicine
+% and the British Journal of Anaesthesia. The document class and
+% packages can be adjusted when we know which specific journal we
+% are targeting since some journals provide their own LaTeX templates.
+%
+% AUTHOR: Christopher Morris
+% INSTITUTION: University of Florida, CISE Department
+% =====================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+% =====================================================================
+% PACKAGE IMPORTS
+% =====================================================================
+% These packages provide additional functionality that LaTeX needs
+% for various features in our paper. Each package is loaded with a
+% comment explaining what functionality it provides, so you can
+% understand what each one does and decide whether you need it.
+
+% Encoding and font packages
+\usepackage[utf8]{inputenc}    % Allows UTF-8 characters in source files
+\usepackage[T1]{fontenc}        % Better font encoding for European characters
+\usepackage{lmodern}            % Modern Latin Modern font
+
+% Page layout
+\usepackage[margin=1in]{geometry}  % Sets all margins to one inch
+\usepackage{setspace}              % Allows control over line spacing
+\usepackage{parskip}               % Better paragraph spacing without indent
+
+% Mathematics
+\usepackage{amsmath}            % Standard math package
+\usepackage{amssymb}            % Additional math symbols
+\usepackage{amsfonts}           % Math fonts
+\usepackage{mathtools}          % Extended math tools
+
+% Tables and figures
+\usepackage{graphicx}           % For including figures
+\usepackage{booktabs}           % For professional looking tables
+\usepackage{multirow}           % Tables with cells spanning multiple rows
+\usepackage{caption}            % Better caption formatting
+\usepackage{subcaption}         % For subfigures with subcaptions
+\usepackage{float}              % Better control over figure placement
+
+% References and citations
+\usepackage[
+    backend=biber,              % Use biber for bibliography processing
+    style=numeric,              % Numeric citation style typical for medical journals
+    sorting=none,               % Sort references by order of appearance
+    maxcitenames=2,             % Show at most 2 author names before et al
+    minbibnames=99,             % Show all names in bibliography
+    giveninits=true,            % Use initials for first names
+]{biblatex}
+\addbibresource{references.bib}    % Tell biblatex where the references are
+
+% Hyperlinks
+\usepackage[hidelinks]{hyperref}   % Make references clickable in PDF
+
+% Code listings if we need them
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Better lists with custom spacing
+\usepackage{enumitem}
+
+% Algorithm typesetting if we need to show pseudocode
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% =====================================================================
+% TITLE AND AUTHOR INFORMATION
+% =====================================================================
+
+\title{A Hybrid Mechanistic-Machine Learning Framework for ICU Sedation Prediction: Personalizing Propofol Pharmacodynamics through Patient-Specific Digital Twins}
+
+\author{
+    Christopher Morris \\
+    Department of Computer and Information Science and Engineering \\
+    Herbert Wertheim College of Engineering \\
+    University of Florida \\
+    \texttt{[email here]}
+}
+
+\date{\today}
+
+% =====================================================================
+% DOCUMENT BODY
+% =====================================================================
+
+\begin{document}
+
+\maketitle
+
+% =====================================================================
+% ABSTRACT
+% =====================================================================
+% Medical journals typically want abstracts of 250 to 300 words
+% structured into Background, Methods, Results, and Conclusions.
+% This is different from many CS papers which use unstructured
+% abstracts. Since we are targeting medical informatics journals
+% we follow the structured format.
+
+\begin{abstract}
+\noindent\textbf{Background:} Intensive care unit sedation management requires balancing patient comfort with safety, but population-based pharmacokinetic models fail to capture individual variation in drug response. Pure machine learning approaches achieve reasonable predictive accuracy but lack the interpretability and physiological grounding required for clinical adoption. There is a need for prediction frameworks that combine the predictive power of machine learning with the interpretability of mechanistic pharmacology.
+
+\noindent\textbf{Methods:} We developed a hybrid framework combining the Eleveld 2018 propofol pharmacokinetic-pharmacodynamic model with machine learning algorithms across multiple algorithm families. Patient-specific effect-site equilibrium concentrations were calibrated individually using retrospective data from MIMIC-IV version 3.1. We evaluated the framework against five algorithm families including XGBoost, Random Forest, Support Vector Machine, Multilayer Perceptron, and Long Short-Term Memory networks. We performed systematic ablation studies to identify which mechanistic feature types contribute to performance for which algorithm families, and compared against established baseline methods including pure population pharmacokinetic prediction and pure machine learning without mechanistic features.
+
+\noindent\textbf{Results:} [Results section to be filled in after experiments complete. Expected findings include modest but consistent improvements across algorithm families when mechanistic features are augmented to clinical features, with detailed ablation analysis revealing which feature types matter most for which algorithm architectures.]
+
+\noindent\textbf{Conclusions:} Hybrid mechanistic-machine learning frameworks offer a path toward more personalized sedation management that combines predictive accuracy with physiological interpretability. The systematic comparison across algorithm families informs the design of physiologically-grounded machine learning systems for medical applications more broadly. The approach demonstrates how digital twin concepts can be operationalized in critical care settings where individual variation in drug response is clinically important.
+
+\noindent\textbf{Keywords:} digital twin, pharmacokinetics, machine learning, intensive care, sedation, propofol, hybrid modeling
+\end{abstract}
+
+% =====================================================================
+% SECTION 1: INTRODUCTION
+% =====================================================================
+% The introduction has four jobs in a medical paper. First it
+% establishes the clinical importance of the problem. Second it
+% reviews what has been tried before and identifies gaps. Third
+% it states the specific research questions we address. Fourth
+% it summarizes our contributions.
+%
+% The introduction in our paper should run about 1000 to 1200 words
+% which is appropriate for medical informatics journals.
+
+\section{Introduction}
+
+\subsection{The Clinical Challenge of ICU Sedation}
+
+Sedation management in the intensive care unit presents a fundamental clinical challenge that affects patient outcomes across diverse critical care scenarios. Patients receiving mechanical ventilation, undergoing complex procedures, or recovering from severe illness require sedation to tolerate their treatment, manage pain and anxiety, and prevent complications such as ventilator-induced lung injury. However, sedation must be carefully titrated because both undersedation and oversedation produce significant adverse outcomes. Inadequate sedation leads to patient distress, ventilator dyssynchrony, and inadvertent device removal. Excessive sedation prolongs mechanical ventilation, increases risk of delirium, predisposes to nosocomial infections, and extends ICU length of stay.
+
+[Continue with discussion of current clinical practice, the SAS scale, propofol as the most commonly used sedative agent, and the challenges of population-based dosing.]
+
+\subsection{Limitations of Current Approaches}
+
+Current approaches to sedation prediction and management fall into two broad categories with complementary strengths and weaknesses. Population-based pharmacokinetic models like the Eleveld 2018 propofol model provide mechanistically grounded predictions based on physiological understanding of drug distribution, metabolism, and effect. These models are interpretable in the sense that every parameter has biological meaning, and they generalize well to new patients because they are based on first principles. However, they use population-averaged parameters that do not capture individual variation in drug sensitivity, leading to substantial prediction errors for patients whose pharmacokinetics differ from the population average.
+
+[Continue with discussion of pure machine learning approaches and their limitations including lack of interpretability and the black box problem.]
+
+\subsection{The Digital Twin Concept and Hybrid Modeling}
+
+The concept of a digital twin originated in aerospace engineering where it described a continuously updated computational model of a physical system. In medicine, a digital twin refers to a patient-specific computational model that integrates clinical measurements with mechanistic physiological knowledge to enable personalized predictions and treatment planning. The work of \cite{corral_acero_2020} on cardiac digital twins articulated the potential of mechanistic and statistical model synergy for precision medicine, demonstrating that combining physics-based models with data-driven learning can produce more accurate and interpretable predictions than either approach alone.
+
+[Continue with discussion of why this concept applies particularly well to ICU sedation, and introduce the specific hybrid framework we developed.]
+
+\subsection{Research Contributions}
+
+Our contributions to this body of work are threefold. First, we developed a novel hybrid framework that combines the Eleveld 2018 mechanistic propofol model with machine learning, specifically through patient-specific calibration of the effect-site equilibrium concentration parameter. This calibration creates a patient-specific digital twin from population-level pharmacology, addressing the individual variation problem that limits pure mechanistic approaches. Second, we systematically evaluated the framework across five different machine learning algorithm families to assess generalizability and identify whether the benefit of mechanistic feature augmentation depends on algorithm choice. Third, we performed detailed ablation analyses to identify which mechanistic feature types contribute most for which algorithm families, producing insights into how to design hybrid mechanistic-machine learning systems for medical applications more broadly.
+
+\subsection{Hypotheses}
+
+Our work tests three formal hypotheses. The primary hypothesis is that augmenting machine learning models with mechanistic features derived from the Eleveld pharmacokinetic-pharmacodynamic model significantly reduces prediction error for the Sedation-Agitation Scale compared to models using only clinical features. The secondary hypothesis is that this improvement is consistent across multiple machine learning algorithm families including tree-based ensembles, support vector machines, feedforward neural networks, and recurrent neural networks. The tertiary hypothesis is that algorithm architecture determines which mechanistic feature types provide the most benefit, with recurrent networks benefiting more from temporal mechanistic features and tree-based models benefiting more from static mechanistic features.
+
+% =====================================================================
+% SECTION 2: METHODS
+% =====================================================================
+% The methods section is critical for medical journals because
+% reviewers will scrutinize methodology carefully. Every choice we
+% made needs to be documented with justification. The section
+% should be detailed enough that a competent researcher could
+% reproduce our work given access to MIMIC-IV.
+%
+% Methods sections in medical informatics papers typically run
+% 2000 to 3000 words.
+
+\section{Methods}
+
+\subsection{Data Source and Cohort Selection}
+
+We used the MIMIC-IV version 3.1 database \cite{johnson_mimiciv_2023} as our data source. MIMIC-IV is a publicly available critical care database containing detailed clinical records from over 200,000 ICU stays at Beth Israel Deaconess Medical Center between 2008 and 2022. Access to MIMIC-IV requires credentialing through PhysioNet including completion of human subjects research ethics training. We accessed the data through Google BigQuery which provides query-level access without requiring database download.
+
+Our cohort selection identified adult patients (age 18 or older) who received propofol infusions during their ICU stay and had at least eleven Sedation-Agitation Scale assessments documented during their stay. We required eleven assessments because our temporal modeling uses the past ten observations to predict the next observation, so eleven represents the minimum needed for a single prediction instance. The complete cohort selection logic is implemented in the SQL queries provided in our project repository.
+
+\subsection{Eleveld Pharmacokinetic-Pharmacodynamic Model}
+
+We used the Eleveld 2018 propofol pharmacokinetic-pharmacodynamic model \cite{eleveld_2018} as the mechanistic foundation for our hybrid framework. The Eleveld model is a three-compartment pharmacokinetic model with an effect-site compartment for pharmacodynamic prediction. The pharmacokinetic component describes how propofol distributes through the body using ordinary differential equations representing drug movement between a central compartment (representing well-perfused tissues including blood and major organs), a rapid peripheral compartment (representing muscle and well-perfused fat), and a slow peripheral compartment (representing poorly-perfused fat and connective tissue). Drug elimination occurs from the central compartment through metabolic clearance. The pharmacodynamic component describes how effect-site drug concentration produces sedation through a sigmoid Emax relationship.
+
+The Eleveld model parameters used in our analysis are V1 = 6.28 L for central compartment volume, V2 = 25.5 L for rapid peripheral volume, V3 = 273 L for slow peripheral volume, CL = 1.79 L/min for metabolic clearance, Q2 = 1.75 L/min and Q3 = 1.11 L/min for inter-compartmental clearances, ke0 = 0.146 per minute for effect-site equilibration rate, EC50 = 3.08 micrograms per mL for population effect-site concentration producing half-maximal effect, gamma = 1.47 for the Hill coefficient in the sigmoid response, and E0 = 7 with Emax = 6 for baseline and maximum effect on the SAS scale. These parameters correspond to the population-typical values published by Eleveld and colleagues with adjustments to map predicted effect onto the SAS scale used in our outcome data.
+
+\subsection{Patient-Specific EC50 Calibration}
+
+The key innovation in our framework is patient-specific calibration of the EC50 parameter. The population EC50 from the Eleveld model represents an average across many patients, but individual variation in drug sensitivity is substantial. By fitting EC50 individually for each patient using their first half of observations, we create a patient-specific digital twin that more accurately predicts that patient's drug response. We use the first half of each patient's SAS observations as a calibration set, holding out the second half as targets for prediction. The calibration optimizes EC50 to minimize mean squared error between mechanistic predictions and observed SAS values across the calibration set, using bounded scalar optimization with EC50 constrained to the physiologically plausible range of 0.5 to 10.0 micrograms per mL.
+
+\subsection{Feature Engineering}
+
+For each prediction instance, we constructed three categories of features. Clinical features include age, gender, weight, height, recent SAS scores at multiple summary statistics (last value, mean, standard deviation, and trend), current propofol infusion rate, and time since first propofol administration. Static mechanistic features include current effect-site concentration, current plasma concentration, the patient's calibrated EC50 value, and predictions from the mechanistic model using both population and calibrated EC50. Temporal mechanistic features include the time series of effect-site concentration over the past ten observation timepoints, captured either as a sequence input to recurrent models or as derived statistics (mean, standard deviation, trend, maximum, and final value) for non-sequential models.
+
+\subsection{Machine Learning Algorithms}
+
+We evaluated five machine learning algorithm families chosen to represent the major approaches used in medical prediction tasks. XGBoost \cite{chen_xgboost_2016} represents tree-based gradient boosting and serves as a strong baseline for tabular medical data. Random Forest \cite{breiman_2001} represents tree-based ensembles using bagging rather than boosting. Support Vector Machine with radial basis function kernel \cite{smola_svr_2004} represents kernel-based methods. Multilayer Perceptron represents feedforward neural networks with established hyperparameters from prior medical applications. Long Short-Term Memory networks \cite{hochreiter_lstm_1997} represent recurrent neural networks designed specifically for sequential data, which is theoretically well-suited to our temporal mechanistic features.
+
+[Continue with detailed hyperparameter specifications and rationale for each algorithm.]
+
+\subsection{Ablation Study Design}
+
+To identify which mechanistic feature types contribute to performance for which algorithm families, we designed a systematic ablation study testing five feature configurations against both XGBoost and LSTM. The FULL HYBRID configuration uses all features and serves as our reference point. The NO TEMPORAL configuration removes temporal mechanistic features to test how much the time series of drug concentration matters. The NO STATIC MECH configuration removes static mechanistic features to test how much patient-specific calibration matters. The PURE ML configuration removes all mechanistic features to establish a baseline using only clinical features. The ONLY MECH configuration removes clinical features to test whether mechanistic features alone are sufficient. By comparing the performance degradation across configurations for each algorithm, we can decompose the total benefit of mechanistic features into contributions from temporal and static components.
+
+\subsection{Statistical Analysis}
+
+We split our cohort at the patient level into training (80\%) and testing (20\%) sets, ensuring that no patient appears in both sets to prevent data leakage. We used a fixed random seed of 42 throughout the analysis for reproducibility. For LSTM models which have stochastic training due to random weight initialization, we ran each configuration with three different random seeds and report mean and standard deviation. We used mean absolute error as our primary metric because it is interpretable in the units of the SAS scale and is robust to outliers. Secondary metrics include root mean squared error and coefficient of determination. Statistical significance testing for differences between configurations [will use bootstrap confidence intervals and paired comparison tests when results are finalized].
+
+\subsection{Computational Implementation}
+
+All analyses were implemented in Python 3.10 using standard scientific computing libraries. Pharmacokinetic ODE integration used SciPy. Tree-based models used XGBoost 2.0 and scikit-learn 1.3. Neural networks used TensorFlow 2.13. The complete computational environment specification is provided in our project repository.
+
+% =====================================================================
+% SECTION 3: RESULTS
+% =====================================================================
+% The results section presents the empirical findings without
+% interpretation. Interpretation goes in the discussion. This
+% separation is a medical journal convention that helps readers
+% distinguish between facts and arguments.
+%
+% Results sections in medical informatics papers typically run
+% 1500 to 2000 words.
+
+\section{Results}
+
+\subsection{Cohort Characteristics}
+
+[Table summarizing patient demographics, sedation distribution, and propofol exposure characteristics will go here when data analysis is complete.]
+
+\subsection{Mechanistic Model Performance}
+
+[Description of the population Eleveld model baseline performance and the improvement from patient-specific EC50 calibration.]
+
+\subsection{Multi-Algorithm Hybrid Comparison}
+
+[Description and table of results showing performance across all five algorithm families in both pure machine learning and hybrid configurations.]
+
+\subsection{Ablation Study Findings}
+
+[Description and figure of the ablation study showing performance degradation across feature configurations for each algorithm.]
+
+\subsection{Comparison with Baseline Methods}
+
+[Comparison table showing our hybrid approach against pure mechanistic and pure machine learning baselines.]
+
+% =====================================================================
+% SECTION 4: DISCUSSION
+% =====================================================================
+% The discussion section interprets the results, places them in
+% context with prior literature, acknowledges limitations, and
+% suggests future directions. This is where we make the case for
+% why our findings matter.
+%
+% Discussion sections in medical informatics papers typically
+% run 1500 to 2000 words.
+
+\section{Discussion}
+
+\subsection{Principal Findings}
+
+[Summary of what we found and why it matters.]
+
+\subsection{Implications for Hybrid Mechanistic-Machine Learning}
+
+[Discussion of how our findings inform the design of hybrid systems for medical applications more broadly.]
+
+\subsection{Comparison with Existing Literature}
+
+[Discussion placing our work in the context of prior research on digital twins in medicine, mechanistic machine learning, and ICU sedation prediction.]
+
+\subsection{Clinical Implications}
+
+[Discussion of what our findings mean for clinical practice and the path toward potential clinical deployment.]
+
+\subsection{Limitations}
+
+Several limitations of our work warrant acknowledgment. First, our analysis used retrospective data from a single medical center, which limits generalizability to different patient populations and clinical practices. Prospective validation in diverse settings will be needed before clinical deployment. Second, the Eleveld model was developed using bispectral index data from anesthesiology settings, while our analysis applies the model to predict Sedation-Agitation Scale scores in critical care settings. While both scales measure sedation depth, this represents a cross-scale application that warrants future investigation with directly comparable data. Third, the LSTM architecture showed substantial sensitivity to random initialization on our cohort size, which may limit confidence in some of our specific quantitative claims even though the general pattern is robust. Larger datasets would likely produce more stable LSTM training. Fourth, our ablation analysis examined feature group contributions but does not address whether different mechanistic feature types interact with each other in ways that simple ablation cannot reveal. Fifth, we did not compare against several competing methods from the recent literature on neural pharmacokinetic-pharmacodynamic modeling and transformer-based approaches to anesthesia depth prediction.
+
+\subsection{Future Directions}
+
+Several extensions to this work merit future investigation. Prospective validation of the framework in clinical settings would strengthen evidence for clinical utility. Extension to additional drugs commonly used in ICU sedation including dexmedetomidine and midazolam would broaden the framework's applicability. Investigation of how the framework integrates with reinforcement learning for closed-loop sedation control could connect to active research in personalized critical care. Application of the framework to other clinical prediction tasks where mechanistic models exist, such as glucose-insulin dynamics in diabetes management or anticoagulation dosing, would test whether our methodological insights generalize beyond ICU sedation.
+
+% =====================================================================
+% SECTION 5: CONCLUSION
+% =====================================================================
+% The conclusion is brief, typically 200 to 300 words, and
+% summarizes the take home messages of the paper.
+
+\section{Conclusion}
+
+[Brief summary of what we did, what we found, and why it matters. The conclusion should leave readers with a clear understanding of the contribution and motivate them to learn more.]
+
+% =====================================================================
+% ACKNOWLEDGMENTS
+% =====================================================================
+
+\section*{Acknowledgments}
+
+[Acknowledgment text including funding sources, computational resources, and any individuals who contributed to the work but are not authors.]
+
+% =====================================================================
+% AUTHOR CONTRIBUTIONS
+% =====================================================================
+% Many medical journals now require explicit author contribution
+% statements following CRediT taxonomy or similar systems.
+
+\section*{Author Contributions}
+
+[Author contribution statement following journal-specific requirements when known.]
+
+% =====================================================================
+% CONFLICT OF INTEREST
+% =====================================================================
+
+\section*{Conflict of Interest}
+
+The authors declare no competing interests.
+
+% =====================================================================
+% DATA AVAILABILITY
+% =====================================================================
+
+\section*{Data Availability}
+
+The MIMIC-IV database used in this analysis is publicly available to credentialed researchers through PhysioNet at \url{https://physionet.org/content/mimiciv/3.1/}. Our specific patient cohort can be reproduced by running the SQL queries provided in our project repository against MIMIC-IV version 3.1.
+
+% =====================================================================
+% CODE AVAILABILITY
+% =====================================================================
+
+\section*{Code Availability}
+
+All analysis code is available in our project repository at [URL to be added before publication]. The repository includes complete source code, SQL queries for data extraction, environment specifications for reproducibility, and documentation explaining how to reproduce all analyses.
+
+% =====================================================================
+% BIBLIOGRAPHY
+% =====================================================================
+
+\printbibliography
+
+\end{document}

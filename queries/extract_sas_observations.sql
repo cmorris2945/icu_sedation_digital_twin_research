@@ -1,0 +1,49 @@
+-- =====================================================================
+-- extract_sas_observations.sql
+-- =====================================================================
+--
+-- Purpose: Extract all Sedation-Agitation Scale assessments for patients
+-- in our cohort. The SAS is a clinical scale used in ICUs to quantify a
+-- patient's level of sedation or agitation, and it is what we are trying
+-- to predict with our digital twin model.
+--
+-- The Sedation-Agitation Scale uses a 7-point scale where lower numbers
+-- mean more sedated and higher numbers mean more agitated. Specifically,
+-- 1 means unarousable, 2 means very sedated, 3 means sedated, 4 means
+-- calm and cooperative, 5 means agitated, 6 means very agitated, and 7
+-- means dangerous agitation. In ICU practice, clinicians typically aim
+-- for SAS scores of 3 or 4, which represent appropriate sedation levels
+-- for mechanically ventilated patients.
+--
+-- Output columns:
+--   stay_id: ICU stay identifier (joins to patient cohort)
+--   charttime: timestamp when the SAS assessment was recorded
+--   sas_score: the SAS value as a number from 1 to 7
+--
+-- Important notes about how SAS values are stored:
+--   In MIMIC-IV, SAS values can be stored as either numeric values in
+--   the valuenum column or as text in the value column. We need to
+--   handle both cases since the storage format varies by hospital unit
+--   and over time. Some units record SAS values as integers, while
+--   others record them as text descriptions like "3-Sedated" that need
+--   to be parsed.
+--
+-- AUTHOR: Christopher Morris
+-- =====================================================================
+--
+-- TODO: Paste the actual query from BigQuery history here.
+-- The query should be of approximately this form:
+--
+-- SELECT 
+--   ce.stay_id,
+--   ce.charttime,
+--   COALESCE(
+--     CAST(ce.valuenum AS FLOAT64),
+--     CAST(SUBSTR(ce.value, 1, 1) AS FLOAT64)
+--   ) AS sas_score
+-- FROM `physionet-data.mimiciv_3_1_icu.chartevents` ce
+-- INNER JOIN `<your-project>.<your-dataset>.kidney_subgroups_patients` p
+--   ON ce.stay_id = p.stay_id
+-- WHERE ce.itemid IN (...) -- SAS-specific item IDs
+--   AND COALESCE(ce.valuenum, ...) BETWEEN 1 AND 7
+-- ORDER BY ce.stay_id, ce.charttime;

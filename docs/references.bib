@@ -1,0 +1,182 @@
+% =====================================================================
+% references.bib
+% =====================================================================
+%
+% Bibliography file for the ICU sedation digital twin paper. This file
+% stores all citations in BibTeX format, which LaTeX uses to automatically
+% generate the references section of the paper. Each entry has a unique
+% citation key that you use in the paper text with \cite{key}.
+%
+% The general structure of a BibTeX entry is to start with the entry type
+% in @brackets followed by the citation key, then a list of fields like
+% author, title, journal, year, and so on. Different entry types are
+% used for different kinds of sources, with @article for journal papers,
+% @inproceedings for conference papers, @book for books, and @misc for
+% miscellaneous sources like websites.
+%
+% As you add citations to the paper, add the corresponding entries here.
+% Most academic search engines including PubMed and Google Scholar can
+% export citations in BibTeX format, so you usually do not have to type
+% these by hand. Just be sure to verify that the exported entries are
+% complete and accurate before using them.
+%
+% =====================================================================
+
+% Foundational reference for the Eleveld pharmacokinetic-pharmacodynamic
+% model that we use as our mechanistic foundation. Cite this whenever you
+% mention the Eleveld model or its parameters.
+@article{eleveld2018,
+    author = {Eleveld, Douglas J. and Colin, Pieter and Absalom, Anthony R. 
+              and Struys, Michel M. R. F.},
+    title = {Pharmacokinetic-Pharmacodynamic Model for Propofol for Broad 
+             Application in Anaesthesia and Sedation},
+    journal = {British Journal of Anaesthesia},
+    year = {2018},
+    volume = {120},
+    number = {5},
+    pages = {942--959},
+    doi = {10.1016/j.bja.2018.01.018}
+}
+
+% Validation paper for the Eleveld model. Cite this when discussing
+% how the model was clinically validated.
+@article{vellinga2021,
+    author = {Vellinga, Remco and Hannivoort, Lieuwe N. and Introna, Michele 
+              and Touw, Daan J. and Absalom, Anthony R. and Eleveld, Douglas J. 
+              and others},
+    title = {Prospective Clinical Validation of the Eleveld Propofol 
+             Pharmacokinetic-Pharmacodynamic Model in General Anaesthesia},
+    journal = {British Journal of Anaesthesia},
+    year = {2021},
+    volume = {126},
+    number = {2},
+    pages = {386--394}
+}
+
+% MIMIC-IV database citation. This is required by the data use agreement
+% any time you publish work using MIMIC-IV data.
+@article{johnson2023,
+    author = {Johnson, Alistair E. W. and Bulgarelli, Lucas and Shen, Lu 
+              and others},
+    title = {{MIMIC-IV}, a Freely Accessible Electronic Health Record Dataset},
+    journal = {Scientific Data},
+    year = {2023},
+    volume = {10},
+    pages = {1},
+    doi = {10.1038/s41597-022-01899-x}
+}
+
+% Cardiovascular digital twin paper that establishes the model synergy
+% concept we build on. Cite this when discussing the theoretical foundation
+% for hybrid mechanistic machine learning.
+@article{corral2020,
+    author = {Corral-Acero, Jorge and Margara, Francesco and Marciniak, Marek 
+              and Rodero, Cristobal and Loncaric, Filip and Feng, Yingjing 
+              and others},
+    title = {The {`Digital Twin'} to Enable the Vision of Precision Cardiology},
+    journal = {European Heart Journal},
+    year = {2020},
+    volume = {41},
+    number = {48},
+    pages = {4556--4564}
+}
+
+% XGBoost foundational paper. Cite when describing the XGBoost algorithm.
+@inproceedings{chen2016,
+    author = {Chen, Tianqi and Guestrin, Carlos},
+    title = {{XGBoost}: A Scalable Tree Boosting System},
+    booktitle = {Proceedings of the 22nd ACM SIGKDD International Conference 
+                 on Knowledge Discovery and Data Mining},
+    year = {2016},
+    pages = {785--794},
+    publisher = {ACM}
+}
+
+% Random Forest foundational paper. Cite when describing the algorithm.
+@article{breiman2001,
+    author = {Breiman, Leo},
+    title = {Random Forests},
+    journal = {Machine Learning},
+    year = {2001},
+    volume = {45},
+    number = {1},
+    pages = {5--32}
+}
+
+% Support Vector Regression tutorial. Cite when describing the SVR algorithm.
+@article{smola2004,
+    author = {Smola, Alex J. and Sch{\"o}lkopf, Bernhard},
+    title = {A Tutorial on Support Vector Regression},
+    journal = {Statistics and Computing},
+    year = {2004},
+    volume = {14},
+    number = {3},
+    pages = {199--222}
+}
+
+% LSTM foundational paper. Cite when introducing the LSTM architecture.
+@article{hochreiter1997,
+    author = {Hochreiter, Sepp and Schmidhuber, J{\"u}rgen},
+    title = {Long Short-Term Memory},
+    journal = {Neural Computation},
+    year = {1997},
+    volume = {9},
+    number = {8},
+    pages = {1735--1780}
+}
+
+% ReLU activation function paper. Cite when describing neural network
+% activation choices.
+@inproceedings{nair2010,
+    author = {Nair, Vinod and Hinton, Geoffrey E.},
+    title = {Rectified Linear Units Improve Restricted {B}oltzmann Machines},
+    booktitle = {Proceedings of the 27th International Conference on 
+                 Machine Learning (ICML-10)},
+    year = {2010},
+    pages = {807--814}
+}
+
+% Adam optimizer paper. Cite when justifying the optimizer choice.
+@inproceedings{kingma2015,
+    author = {Kingma, Diederik P. and Ba, Jimmy},
+    title = {Adam: A Method for Stochastic Optimization},
+    booktitle = {Proceedings of the International Conference on 
+                 Learning Representations (ICLR)},
+    year = {2015}
+}
+
+% Wong Nature Methods paper for colorblind accessible color palette.
+% Cite if you discuss the visualization choices in detail.
+@article{wong2011,
+    author = {Wong, Bang},
+    title = {Points of View: Color Blindness},
+    journal = {Nature Methods},
+    year = {2011},
+    volume = {8},
+    number = {6},
+    pages = {441}
+}
+
+% =====================================================================
+% PLACEHOLDER ENTRIES TO FILL IN AS YOU CITE LITERATURE
+% =====================================================================
+%
+% Below are stub entries for citations referenced in the paper draft
+% that need to be filled in. Search PubMed or Google Scholar for the
+% appropriate sources, export the BibTeX entries, and replace these
+% stubs with the actual citation information.
+% =====================================================================
+
+% TODO: Find and add citations for ICU sedation outcomes literature
+% mentioned in the introduction paragraph about sedation management
+% being a clinical challenge.
+
+% TODO: Find and add citations for Sedation-Agitation Scale validation
+% papers and Bispectral Index comparison literature.
+
+% TODO: Find and add citations for any specific machine learning papers
+% on sedation or anesthesia depth prediction that we should compare
+% our work against.
+
+% TODO: Find and add citations for digital twin papers in other clinical
+% domains that we discuss in the introduction or discussion.
