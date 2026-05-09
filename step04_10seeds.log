@@ -1,0 +1,23 @@
+======================================================================
+FIGURE GENERATION
+======================================================================
+
+Loading degradation analysis from degradation_analysis.csv...
+   Loaded 10 rows
+
+Generating main ablation figure...
+   Saved figures\ablation_main.png
+   Saved figures\ablation_main.pdf
+
+Generating absolute MAE figure...
+   Saved figures\absolute_mae.png
+   Saved figures\absolute_mae.pdf
+
+======================================================================
+All figures generated successfully
+======================================================================
+
+Figures are saved in the 'figures' subfolder.
+PNG files are for embedding in manuscripts.
+PDF files are vector format for final publication.
+EXIT_CODE: 0

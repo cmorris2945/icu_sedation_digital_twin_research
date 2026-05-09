@@ -1,0 +1,95 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1778187120.077397   16148 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1778187125.111596   16148 port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+======================================================================
+ABLATION STUDY
+======================================================================
+Started at: 2026-05-07 16:52:06
+
+No previous results found, starting from scratch
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+   Train: 1191 patients, 24522 observations
+   Test:  298 patients, 6409 observations
+
+Running experiments...
+Total expected: 5 configs x (1 XGBoost + 10 LSTM seeds) = 55 runs
+
+[16:52:06] Configuration: FULL_HYBRID
+   All features (reference baseline)
+   XGBoost: MAE=0.3330, R²=0.6172
+   LSTM seed 42: MAE=0.4324, R²=0.5682, train_loss=0.3223, val_loss=0.3390
+   LSTM seed 43: MAE=0.3909, R²=0.6036, train_loss=0.3229, val_loss=0.3039
+   LSTM seed 44: MAE=0.3905, R²=0.5941, train_loss=0.3242, val_loss=0.3062
+   LSTM seed 45: MAE=0.4382, R²=0.5713, train_loss=0.3203, val_loss=0.3362
+   LSTM seed 46: MAE=0.4073, R²=0.5950, train_loss=0.3214, val_loss=0.3114
+   LSTM seed 47: MAE=0.4033, R²=0.5905, train_loss=0.3209, val_loss=0.3155
+   LSTM seed 48: MAE=0.3874, R²=0.6065, train_loss=0.3202, val_loss=0.3108
+   LSTM seed 49: MAE=0.3746, R²=0.6137, train_loss=0.3165, val_loss=0.2957
+   LSTM seed 50: MAE=0.3988, R²=0.6062, train_loss=0.3185, val_loss=0.3049
+   LSTM seed 51: MAE=0.3468, R²=0.6247, train_loss=0.3182, val_loss=0.2893
+
+[17:00:23] Configuration: NO_TEMPORAL
+   Remove temporal mechanistic features
+   XGBoost: MAE=0.3326, R²=0.6205
+   LSTM seed 42: MAE=0.3507, R²=0.6098, train_loss=0.3247, val_loss=0.3204
+   LSTM seed 43: MAE=0.3949, R²=0.5996, train_loss=0.3235, val_loss=0.3127
+   LSTM seed 44: MAE=0.3493, R²=0.6184, train_loss=0.3262, val_loss=0.2874
+   LSTM seed 45: MAE=0.4345, R²=0.5663, train_loss=0.3270, val_loss=0.3391
+   LSTM seed 46: MAE=0.3631, R²=0.6147, train_loss=0.3223, val_loss=0.2867
+   LSTM seed 47: MAE=0.4028, R²=0.5931, train_loss=0.3260, val_loss=0.3137
+   LSTM seed 48: MAE=0.3740, R²=0.6110, train_loss=0.3268, val_loss=0.2972
+   LSTM seed 49: MAE=0.4067, R²=0.5924, train_loss=0.3270, val_loss=0.3133
+   LSTM seed 50: MAE=0.3608, R²=0.6116, train_loss=0.3319, val_loss=0.3064
+   LSTM seed 51: MAE=0.3510, R²=0.6198, train_loss=0.3226, val_loss=0.2917
+
+[17:09:24] Configuration: NO_STATIC_MECH
+   Remove static mechanistic features
+   XGBoost: MAE=0.3383, R²=0.6097
+   LSTM seed 42: MAE=0.4003, R²=0.5992, train_loss=0.3255, val_loss=0.3093
+   LSTM seed 43: MAE=0.3580, R²=0.6200, train_loss=0.3215, val_loss=0.2918
+   LSTM seed 44: MAE=0.3375, R²=0.6279, train_loss=0.3180, val_loss=0.2870
+   LSTM seed 45: MAE=0.3880, R²=0.6045, train_loss=0.3240, val_loss=0.3021
+   LSTM seed 46: MAE=0.4077, R²=0.5809, train_loss=0.3298, val_loss=0.3206
+   LSTM seed 47: MAE=0.3328, R²=0.6265, train_loss=0.3208, val_loss=0.2905
+   LSTM seed 48: MAE=0.3744, R²=0.6155, train_loss=0.3248, val_loss=0.2967
+   LSTM seed 49: MAE=0.4061, R²=0.5927, train_loss=0.3254, val_loss=0.3106
+   LSTM seed 50: MAE=0.4143, R²=0.5895, train_loss=0.3234, val_loss=0.3205
+   LSTM seed 51: MAE=0.3647, R²=0.6190, train_loss=0.3206, val_loss=0.2935
+
+[17:18:36] Configuration: PURE_ML
+   Remove all mechanistic features
+   XGBoost: MAE=0.3441, R²=0.6092
+   LSTM seed 42: MAE=0.3612, R²=0.6104, train_loss=0.3275, val_loss=0.2989
+   LSTM seed 43: MAE=0.3774, R²=0.6020, train_loss=0.3268, val_loss=0.3114
+   LSTM seed 44: MAE=0.4063, R²=0.5798, train_loss=0.3337, val_loss=0.3124
+   LSTM seed 45: MAE=0.3733, R²=0.6084, train_loss=0.3272, val_loss=0.3006
+   LSTM seed 46: MAE=0.3453, R²=0.6124, train_loss=0.3263, val_loss=0.2961
+   LSTM seed 47: MAE=0.3829, R²=0.6058, train_loss=0.3294, val_loss=0.2993
+   LSTM seed 48: MAE=0.4402, R²=0.5581, train_loss=0.3341, val_loss=0.3410
+   LSTM seed 49: MAE=0.4340, R²=0.5576, train_loss=0.3331, val_loss=0.3353
+   LSTM seed 50: MAE=0.4197, R²=0.5805, train_loss=0.3314, val_loss=0.3213
+   LSTM seed 51: MAE=0.4167, R²=0.5800, train_loss=0.3344, val_loss=0.3215
+
+[17:27:28] Configuration: ONLY_MECH
+   Keep only mechanistic features
+   XGBoost: MAE=0.5674, R²=0.2189
+   LSTM seed 42: MAE=0.4044, R²=0.5859, train_loss=0.3271, val_loss=0.3163
+   LSTM seed 43: MAE=0.4078, R²=0.5966, train_loss=0.3246, val_loss=0.3117
+   LSTM seed 44: MAE=0.3633, R²=0.6090, train_loss=0.3275, val_loss=0.2906
+   LSTM seed 45: MAE=0.3509, R²=0.6170, train_loss=0.3286, val_loss=0.2926
+   LSTM seed 46: MAE=0.3756, R²=0.6060, train_loss=0.3298, val_loss=0.2942
+   LSTM seed 47: MAE=0.3521, R²=0.6164, train_loss=0.3286, val_loss=0.3022
+   LSTM seed 48: MAE=0.3916, R²=0.6014, train_loss=0.3269, val_loss=0.3038
+   LSTM seed 49: MAE=0.3681, R²=0.6090, train_loss=0.3291, val_loss=0.2915
+   LSTM seed 50: MAE=0.3899, R²=0.6038, train_loss=0.3274, val_loss=0.2979
+   LSTM seed 51: MAE=0.3685, R²=0.6077, train_loss=0.3278, val_loss=0.2951
+
+Completed 55 new runs, skipped 0 previously completed
+
+Finished at: 2026-05-07 17:36:03
+
+Next step: run 'python analyze_results.py' to generate summary statistics
+EXIT_CODE: 0
