@@ -1,0 +1,21 @@
+======================================================================
+CAPACITY SWEEP FIGURES
+======================================================================
+
+Loading summary from capacity_sweep_summary.csv...
+   4 sizes: [4, 8, 16, 32]
+   5 configurations
+   max seeds per cell: 10
+
+Generating main capacity sweep figure...
+   Saved figures\capacity_sweep_main.png
+   Saved figures\capacity_sweep_main.pdf
+
+Generating capacity heatmap figure...
+   Saved figures\capacity_heatmap.png
+   Saved figures\capacity_heatmap.pdf
+
+======================================================================
+All capacity sweep figures generated successfully
+======================================================================
+EXIT_CODE: 0

@@ -1,0 +1,67 @@
+======================================================================
+CAPACITY SWEEP ANALYSIS
+======================================================================
+
+Loaded 200 run results from capacity_sweep_results.csv
+
+Results coverage (rows = lstm_units, columns = configurations):
+configuration  FULL_HYBRID  NO_STATIC_MECH  NO_TEMPORAL  ONLY_MECH  PURE_ML
+lstm_units                                                                 
+4                       10              10           10         10       10
+8                       10              10           10         10       10
+16                      10              10           10         10       10
+32                      10              10           10         10       10
+
+Saved summary to capacity_sweep_summary.csv
+
+======================================================================
+DEGRADATION FROM FULL_HYBRID BASELINE (% MAE change)
+======================================================================
+
+           FULL_HYBRID       NO_TEMPORAL  NO_STATIC_MECH           PURE_ML       ONLY_MECH
+lstm_units                                                                                
+4             baseline   +10.00% ± 9.65%  +4.64% ± 5.13%  +10.43% ± 10.85%  +3.59% ± 6.62%
+8             baseline  +10.23% ± 20.24%  +3.06% ± 8.23%   +4.49% ± 13.50%  +0.93% ± 9.66%
+16            baseline    +0.50% ± 6.26%  +1.96% ± 4.88%    +0.67% ± 5.77%  -5.69% ± 9.08%
+32            baseline    +1.75% ± 6.90%  -1.35% ± 5.45%    +0.62% ± 8.57%  +0.46% ± 4.50%
+
+======================================================================
+ABSOLUTE MAE (mean ± std)
+======================================================================
+
+                FULL_HYBRID      NO_TEMPORAL   NO_STATIC_MECH          PURE_ML        ONLY_MECH
+lstm_units                                                                                     
+4           0.3514 ± 0.0175  0.3865 ± 0.0339  0.3677 ± 0.0180  0.3880 ± 0.0381  0.3640 ± 0.0233
+8           0.3718 ± 0.0154  0.4099 ± 0.0753  0.3832 ± 0.0306  0.3885 ± 0.0502  0.3753 ± 0.0359
+16          0.3819 ± 0.0325  0.3838 ± 0.0239  0.3893 ± 0.0186  0.3844 ± 0.0221  0.3602 ± 0.0347
+32          0.4055 ± 0.0284  0.4126 ± 0.0280  0.4001 ± 0.0221  0.4081 ± 0.0347  0.4074 ± 0.0182
+
+======================================================================
+CAPACITY-MATCHING HYPOTHESIS CHECK
+======================================================================
+
+Hypothesis: smaller LSTMs benefit more from mechanistic features, so
+removing them (NO_STATIC_MECH, PURE_ML) should hurt small models more
+than large ones. Look for a monotonically decreasing degradation as
+LSTM size grows.
+
+NO_STATIC_MECH:
+   units=  4: degradation =  +4.64% ±  5.13%, MAE = 0.3677
+   units=  8: degradation =  +3.06% ±  8.23%, MAE = 0.3832
+   units= 16: degradation =  +1.96% ±  4.88%, MAE = 0.3893
+   units= 32: degradation =  -1.35% ±  5.45%, MAE = 0.4001
+   Trend across sizes: monotonically decreasing (consistent with hypothesis)
+
+PURE_ML:
+   units=  4: degradation = +10.43% ± 10.85%, MAE = 0.3880
+   units=  8: degradation =  +4.49% ± 13.50%, MAE = 0.3885
+   units= 16: degradation =  +0.67% ±  5.77%, MAE = 0.3844
+   units= 32: degradation =  +0.62% ±  8.57%, MAE = 0.4081
+   Trend across sizes: monotonically decreasing (consistent with hypothesis)
+
+======================================================================
+Files generated:
+   capacity_sweep_summary.csv
+
+Next step: run 'python 04b_plot_capacity_sweep.py' to generate figures
+EXIT_CODE: 0
