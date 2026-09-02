@@ -1,0 +1,750 @@
+================================================================================
+INSTRUCTIONS.TXT
+ICU Sedation Digital Twin Research
+Christopher Morris, University of Florida CISE
+Advisor: Dr. Tamer Kahveci
+================================================================================
+
+PURPOSE OF THIS FILE
+This is the working record of decisions, parameters, and provenance for the
+project. It exists so that when the methods section is written months from now,
+nothing has to be reconstructed from memory. The reasoning behind choices is
+recorded alongside the choices themselves, because the code shows WHAT was done
+but not WHY.
+
+Anything marked [VERIFY] or [TODO] is not yet confirmed and must not be treated
+as fact. Do not fill these in by guessing.
+
+Last updated: 2026-09-02
+
+================================================================================
+1. PROJECT IDENTITY
+================================================================================
+
+Repository: github.com/cmorris2945/icu_sedation_digital_twin_research (public)
+
+  NOTE: the repository is PUBLIC. Confirmed 2026-09-02 by an unauthenticated
+  request to the GitHub API (HTTP 200 without credentials). Everything pushed
+  is world-readable immediately. Git history was audited on the same date and
+  contains NO patient data on any branch: the only tracked CSVs are aggregate
+  result files (ablation_results, ablation_results_3seeds, capacity_sweep_
+  results, capacity_sweep_summary, summary_statistics, degradation_analysis).
+  The .gitignore rules covering data/*.csv, *kidney*.csv, *propofol*.csv,
+  *sas*.csv and *.pkl have held for the entire history. Keep it that way:
+  under the MIMIC-IV DUA a single careless `git add -f` on this repo is a
+  disclosure, not a mistake that can be quietly undone.
+
+Papers produced from this repo:
+  Paper 1 (PUBLISHED): "Survey of Digital Twin Technology"
+      Archives of Computational Methods in Engineering (Springer)
+      Impact factor 12.9 (2025); 5-year IF 14.4. JCR Q1.
+      First author: C. Morris. Co-author: T. Kahveci.
+      Status: accepted, minor revisions requested by Reviewer 1 (see Section 8).
+
+  Paper 2 (IN PREPARATION, this repo): "Model Capacity Moderates the Utility of
+      Mechanistic Feature Integration in Hybrid ICU Clinical Prediction Models"
+      Target: AI in Medicine (primary), IEEE JBHI, then JBI as fallbacks.
+
+  Paper 3 (PLANNED): RL for personalized ICU sedation, using the calibrated
+      twin as a patient-specific simulator.
+
+  Paper 4 (ASPIRATIONAL): prospective silent validation on live ICU patients.
+      Requires a clinical collaborator with IRB standing.
+
+================================================================================
+2. PROJECT LAYOUT
+================================================================================
+
+Repo root: <local clone path>/icu_sedation_digital_twin_research/
+
+  data/                          Local data only. ALL CONTENTS GIT-IGNORED.
+    README.md                    (the only committed file here)
+    kidney_subgroups_patients.csv    [LOCAL ONLY] demographics + comorbidity flags
+                                     cols: stay_id, gender, age, weight, height,
+                                     has_AKI ... has_ANY_Kidney
+    kidney_subgroups_propofol.csv    [LOCAL ONLY] infusion events
+                                     cols: stay_id, starttime, endtime, rate, rateuom
+    kidney_subgroups_sas.csv         [LOCAL ONLY] sedation observations
+                                     cols: stay_id, charttime, sas_score
+    processed_features/              [LOCAL ONLY] cached intermediates
+
+  cached_features.pkl            [LOCAL ONLY, GIT-IGNORED] ~9.5 MB
+                                 One row per prediction instance. Produced by
+                                 01_build_features.py. This is the file every
+                                 downstream analysis needs and it exists ONLY on
+                                 the primary workstation.
+
+  src/
+    01_build_features.py         PK simulation + EC50 calibration -> pkl
+    02_run_ablation.py           5 configs x (1 XGB + 10 LSTM seeds) at 16 units
+    03_analyze_results.py        summary + degradation stats
+    04_make_figures.py           ablation bar charts
+    05_cohort_figures.py         [NEW, NOT YET RUN] cohort distributions +
+                                 per-patient scatter plots (Kahveci's request)
+    06_capacity_sweep.py         [NEW, NOT NEEDED] would regenerate the sweep;
+                                 superseded because the sweep CSV already exists
+                                 on the experiment branch
+    07_capacity_stats.py         [NEW, NOT YET RUN] formal trend statistics +
+                                 decay-fit figure
+    lib/
+      experiment_tracker.py      JSON experiment logging utility
+      publication_plots.py       shared matplotlib styling, Wong colorblind palette
+
+  [DISCREPANCY - 2026-09-02, NOT RESOLVED, DO NOT GUESS]
+  The src/ listing above does not match the working tree. Files 05_cohort_
+  figures.py, 06_capacity_sweep.py and 07_capacity_stats.py do NOT exist in the
+  repo or in any commit on any branch. The scripts that DO exist and are not
+  listed above are:
+      src/02b_run_capacity_sweep.py     produced capacity_sweep_results.csv
+      src/03b_analyze_capacity_sweep.py produced capacity_sweep_summary.csv
+      src/04b_plot_capacity_sweep.py    produced the capacity figures
+  These three are the real sweep pipeline (see Section 10). Whether 05/06/07
+  are unwritten plans, live on another machine, or are alternate names for the
+  b-scripts is UNKNOWN and must be resolved by the author, not inferred.
+
+  Also note: src/lib/experiment_tracker.py and src/lib/publication_plots.py are
+  imported by nothing in src/. They are currently dead code.
+
+  queries/                       SQL templates ONLY. See GOTCHAS - the real
+                                 queries were never saved.
+    extract_propofol_patients.sql      [STUB - TODO]
+    extract_propofol_infusions.sql     [STUB - TODO]
+    extract_sas_observations.sql       [STUB - TODO]
+
+  paper/
+    main.tex                     [OUTDATED - old framing, superseded by Overleaf]
+    references.bib               [OUTDATED]
+    OVERLEAF_GUIDE.md
+
+  docs/
+    transparency_checklist.md    hyperparameters and methodology decisions
+    paper_draft.tex              [SUPERSEDED - old multi-algorithm framing]
+    paper_skeleton.md            [SUPERSEDED - old framing]
+    study_guide_v1_long.md       [SUPERSEDED - describes abandoned hypotheses]
+    study_guide_v2_medium.md     [SUPERSEDED]
+    study_guide_v3_short.md      [SUPERSEDED]
+    progress_report_april12.md   historical record of the kidney null result
+    SETUP_INSTRUCTIONS.md
+
+  figures/
+    ablation_main.png/.pdf       16-unit ablation degradation bars
+    absolute_mae.png/.pdf        16-unit absolute MAE bars
+    NOTE: these are the 16-UNIT ABLATION figures. They do NOT show the
+    capacity-moderation finding. Do not mislabel them as the capacity result.
+
+    capacity_sweep_main.png/.pdf  [added by commit 2fa4c4c] THESE are the
+    capacity_heatmap.png/.pdf     capacity-moderation figures. Produced by
+                                  src/04b_plot_capacity_sweep.py.
+
+  Committed result files (branch main):
+    ablation_results.csv         per-run rows, 16-unit ablation, 10 LSTM seeds
+    ablation_results_3seeds.csv  [SUPERSEDED - earlier 3-seed version]
+    summary_statistics.csv       per-config means/SDs
+    degradation_analysis.csv     degradation percentages
+    step02_10seeds.log           run logs
+    step03_10seeds.log
+    step04_10seeds.log
+
+  Committed result files (merged into main 2026-09-02; originally on branch
+  experiment/lstm-capacity-sweep, commit 2fa4c4c):
+    capacity_sweep_results.csv   24 KB, per-seed rows, all 200 LSTM runs
+                                 cols: algorithm, configuration, seed, lstm_units,
+                                 mae, rmse, r2, epochs, final_train_loss,
+                                 final_val_loss
+    capacity_sweep_summary.csv   1 KB, 20 rows, per (units, config) means/SDs
+                                 and degradation percentages
+    step02b_capacity_sweep.log   full sweep run log, 200 runs, with timestamps
+    step03b_capacity_sweep.log   analysis log
+    step04b_capacity_sweep.log   figure generation log
+
+  environment/requirements.txt   dependency ranges (not pinned exact versions).
+                                 Exact installed versions recorded in Section 9.
+
+================================================================================
+3. BRANCH SITUATION  [RESOLVED 2026-09-02]
+================================================================================
+
+main                             16-unit ablation results + capacity sweep
+experiment/lstm-capacity-sweep   the capacity sweep results (THE HEADLINE DATA)
+
+The paper's central finding lived on a non-default branch. RESOLVED: the branch
+was merged into main on 2026-09-02 and pushed. The merge was a fast-forward, so
+no merge commit exists and the sweep commit hash is unchanged.
+
+  Sweep commit hash:  2fa4c4c
+  Full hash:          2fa4c4c4ac81d7afb1ccdf2b5dd940a7ed2c3897
+  Author date:        2026-05-09 04:07:52 -0400
+  Author:             cmorris2945 <cmorris2945@yahoo.com>
+  Subject:            LSTM capacity sweep: 4 sizes x 5 configs x 10 seeds
+
+Commit 2fa4c4c contains capacity_sweep_results.csv, capacity_sweep_summary.csv,
+the three b-scripts, the three sweep logs, and the two capacity figures. The
+experiment branch is retained (not deleted) so the commit stays resolvable by
+branch name as well as by SHA.
+
+================================================================================
+4. PIPELINE ORDER
+================================================================================
+
+  MIMIC-IV v3.1 (PhysioNet, via Google BigQuery, project physionet-data)
+    |
+    |  real SQL queries  [NOT IN REPO - see GOTCHAS]
+    v
+  data/kidney_subgroups_{patients,propofol,sas}.csv   [LOCAL ONLY]
+    |
+    |  src/01_build_features.py   (~15-30 min, ODE solver is the bottleneck)
+    v
+  cached_features.pkl   [LOCAL ONLY]
+    |
+    +--> src/02_run_ablation.py  --> ablation_results.csv        (16 units)
+    |         |
+    |         +--> 03_analyze_results.py --> summary_statistics.csv
+    |         |                              degradation_analysis.csv
+    |         +--> 04_make_figures.py     --> figures/*.png/.pdf
+    |
+    +--> [capacity sweep run]    --> capacity_sweep_results.csv  (4/8/16/32 units)
+    |         |                       capacity_sweep_summary.csv
+    |         +--> 07_capacity_stats.py  --> capacity_trend_stats.txt  [NOT RUN]
+    |                                        figures/capacity/*
+    |
+    +--> src/05_cohort_figures.py --> cohort_table1.csv          [NOT RUN]
+                                      cohort_correlations.csv
+                                      figures/cohort/*
+
+  [DISCREPANCY - see Section 2] The "[capacity sweep run]" step above was in
+  fact src/02b_run_capacity_sweep.py -> src/03b_analyze_capacity_sweep.py ->
+  src/04b_plot_capacity_sweep.py. Verified against the step02b/03b/04b logs.
+
+Cohort naming note: files are named "kidney_subgroups_*" for historical reasons
+(the abandoned Phase 1 kidney hypothesis). The kidney labels are ignored by the
+current analysis. The cohort is defined by its inclusion criteria, not its name.
+In the paper, describe it by criteria to avoid confusing readers.
+
+================================================================================
+5. PARAMETERS
+================================================================================
+
+--- COHORT ---
+Database                MIMIC-IV v3.1 (PhysioNet credentialed, BigQuery)
+Inclusion               age >= 18 at admission
+                        >= 1 propofol infusion event during ICU stay
+                        >= 11 SAS observations
+                        (11 = 10 for history sequence + 1 prediction target)
+Final cohort            1,489 patients
+Prediction instances    30,931
+Train/test split        80/20 at PATIENT level, random_state=42
+                        1,191 train patients / 298 test patients
+WHY patient-level:      observation-level splitting would put the same patient in
+                        both train and test, leaking information and inflating
+                        performance. Patient-level is the honest estimate of
+                        generalization to new patients.
+
+--- ELEVELD 2018 PK/PD POPULATION PARAMETERS ---
+Source: Eleveld DJ, Colin P, Absalom AR, Struys MMRF. Br J Anaesth.
+        2018;120(5):942-959. doi:10.1016/j.bja.2018.01.018
+V1        6.28 L        central compartment volume
+V2        25.5 L        rapid peripheral compartment volume
+V3        273 L         slow peripheral compartment volume
+CL        1.79 L/min    metabolic clearance (hepatic)
+Q2        1.75 L/min    inter-compartmental clearance to V2
+Q3        1.11 L/min    inter-compartmental clearance to V3
+ke0       0.146 /min    effect-site equilibration rate
+EC50_pop  3.08 ug/mL    population EC50
+gamma     1.47          Hill coefficient
+E0        7             baseline SAS without drug
+Emax      6             maximum drug effect on SAS scale
+
+--- ODE SOLVER ---
+Method                  scipy.integrate.odeint
+Time grid               1 minute steps
+Simulation duration     72 hours (sim_duration_hrs=72)
+Initial conditions      all compartments = 0
+mxstep                  5000
+
+--- EC50 CALIBRATION (the digital twin innovation) ---
+Optimizer               scipy.optimize.minimize_scalar, method='bounded'
+                        (Brent's method)
+Bounds                  [0.5, 10.0] ug/mL
+Objective               MSE between mechanistic prediction and observed SAS
+Calibration set         first half of each patient's SAS observations
+                        n_calib = max(SEQUENCE_LENGTH, n_obs // 2)
+Fallback                if optimization fails, use EC50_pop (3.08)
+WHY first half:         mimics clinical use, early observations personalize the
+                        model before it predicts subsequent care. Also prevents
+                        the calibration from seeing the prediction targets.
+
+--- FEATURE ENGINEERING ---
+SEQUENCE_LENGTH         10 (~2-4 hours of SAS observations)
+Weight default          75 kg if missing or <= 0
+Height default          170 cm if missing
+Rate conversion         mcg/kg/min -> mg/min via (rate * weight) / 1000
+
+Clinical features (10): age, gender (1=M, 0=F), weight, height, sas_last,
+    sas_mean, sas_std, sas_trend, propofol_rate, time_hours
+Static mechanistic (5): Ce, Cp, EC50_calibrated, mech_pred_pop, mech_pred_calib
+Temporal derived for XGBoost (5): ce_seq_mean, ce_seq_std, ce_seq_trend,
+    ce_seq_max, ce_seq_last
+Sequence inputs for LSTM: 10-step SAS history, 10-step Ce history
+
+--- ABLATION CONFIGURATIONS (5) ---
+FULL_HYBRID       all features (reference baseline)
+NO_TEMPORAL       remove temporal mechanistic features
+NO_STATIC_MECH    remove static mechanistic features
+PURE_ML           remove ALL mechanistic features (clinical only)
+ONLY_MECH         remove clinical features (mechanistic only)
+
+--- XGBOOST ---
+n_estimators            100
+max_depth               6
+learning_rate           0.1
+subsample               1.0
+colsample_bytree        1.0
+random_state            42
+objective               reg:squarederror
+Runs per config         1 (deterministic given fixed seed)
+
+--- LSTM ---
+Architecture            Input(seq) -> LSTM(units) -> Dropout(0.2) ->
+                        concat(static) -> Dense(16, relu) -> Dropout(0.2) ->
+                        Dense(8, relu) -> Dense(1)
+                        Single layer, UNIDIRECTIONAL.
+WHY unidirectional:     the task is forecasting; future observations are not
+                        available at inference time.
+Optimizer               Adam, learning_rate=0.001
+Loss                    MSE
+Batch size              64
+Epochs                  50 FIXED (no early stopping)
+Validation split        0.15
+Seeds                   10, values 42-51 (BASE_SEED + 0..9)
+Scaling                 StandardScaler, static and sequence scaled SEPARATELY
+WHY fixed epochs:       April 2026 investigation found early stopping triggered
+                        at wildly different points across seeds (18 to 50 epochs),
+                        producing ~10% coefficient of variation. Fixed-epoch
+                        training reduced CV to ~4%. This made results stable
+                        enough to draw conclusions.
+
+Ablation LSTM size      16 units (02_run_ablation.py, LSTM_UNITS=16)
+Capacity sweep sizes    4, 8, 16, 32 units
+Total sweep runs        4 sizes x 5 configs x 10 seeds = 200 LSTM runs
+                        (plus XGBoost, deterministic)
+
+--- METRICS ---
+Primary                 MAE (in SAS units, clinically interpretable)
+Secondary               RMSE, R^2
+Degradation formula     (config_MAE - FULL_HYBRID_MAE) / FULL_HYBRID_MAE * 100
+
+================================================================================
+6. VERIFIED RESULTS AND THEIR PROVENANCE
+================================================================================
+
+Every number below was checked against the named file on 2026-06-18.
+
+--- 16-UNIT ABLATION ---
+Source: degradation_analysis.csv, summary_statistics.csv (branch main)
+
+  XGBoost (n=1, deterministic):
+    FULL_HYBRID       0.3330    baseline
+    NO_TEMPORAL       0.3326    -0.12%
+    NO_STATIC_MECH    0.3383    +1.58%
+    PURE_ML           0.3441    +3.34%   <-- the digital twin benefit
+    ONLY_MECH         0.5674    +70.38%  <-- mechanistic features are additive,
+                                             not standalone
+
+  LSTM at 16 units (n=10 seeds):
+    FULL_HYBRID       0.3970 +/- 0.0264
+    NO_TEMPORAL       0.3788 +/- 0.0293   -4.60 +/- 7.39%
+    NO_STATIC_MECH    0.3784 +/- 0.0295   -4.70 +/- 7.44%
+    PURE_ML           0.3957 +/- 0.0322   -0.33 +/- 8.10%
+    ONLY_MECH         0.3772 +/- 0.0203   -4.99 +/- 5.12%
+
+  NOTE: at 16 units the LSTM FULL_HYBRID was the WORST configuration. Adding
+  features made it worse. This overfitting signature is what motivated the
+  capacity sweep.
+
+--- CAPACITY SWEEP (THE HEADLINE) ---
+Source: capacity_sweep_summary.csv (commit 2fa4c4c, now on main)
+
+  units   FULL_HYBRID MAE   PURE_ML MAE   degradation
+  4       0.3514 +/- 0.0175  0.3880        +10.43%
+  8       0.3718 +/- 0.0154  0.3885        +4.49%
+  16      0.3819 +/- 0.0325  0.3844        +0.67%
+  32      0.4055 +/- 0.0284  0.4081        +0.62%
+
+  Best model in entire sweep: 4-unit FULL_HYBRID (MAE 0.3514)
+    beats 16-unit FULL_HYBRID (0.3819) by 8.0%
+    beats 32-unit FULL_HYBRID (0.4055) by 13.3%
+
+--- FORMAL TREND STATISTICS ---
+Computed 2026-06-18 from the verified degradation values above.
+  Spearman monotonicity:  rho = -1.000, p < 0.05
+      (perfect monotonic decrease, distribution-free, PRIMARY CLAIM)
+  Exponential decay fit D(h) = a*exp(-b*h):
+      a = 24.54 +/- 2.80
+      b = 0.2137 +/- 0.0230
+      R^2 = 0.9942
+  Linear regression on log2(capacity):
+      slope = -3.33 pct per doubling, r = -0.929, p = 0.0713
+      NOT significant at 0.05. Report honestly: only 4 capacity points,
+      low statistical power. Lead with the monotonic ordering and the
+      exponential fit, not this p-value.
+
+  [TODO] These statistics are not yet in the manuscript. Add them.
+
+================================================================================
+7. VERSION HISTORY (the reasoning, not just the changes)
+================================================================================
+
+--- Jan 2026: project initialized ---
+Chose MIMIC-IV v3.1 for public credentialed access and ICU coverage.
+Chose Eleveld 2018 as the mechanistic foundation: current state of the art for
+propofol, used in commercial TCI pumps, has calibratable population parameters.
+Chose SAS as the target because it is consistently recorded in MIMIC; BIS was
+considered and rejected because BIS is not reliably available in ICU settings.
+
+--- Feb 2026: first hybrid experiment ---
+XGBoost + mechanistic features vs pure XGBoost. Early result ~14.9% improvement
+on a smaller sample. Robustness across training set sizes (10%-100%) showed the
+hybrid won at every level.
+
+--- Mar 2026: PHASE 1 - KIDNEY COMORBIDITY. NULL RESULT. ---
+Hypothesis: patients with kidney disease benefit more from EC50 calibration.
+Tested AKI, CKD 1-5, dialysis, diabetic nephropathy, hypertensive kidney disease.
+RESULT: calibration improved everyone ~15-20% equally. No differential benefit.
+t-test no-kidney vs severe-kidney: p = 0.45.
+WHY IT FAILED: propofol is hepatically metabolized via glucuronidation, NOT
+renally cleared. Kidney function does not substantially affect propofol PK. The
+hypothesis rested on a flawed mechanistic assumption.
+LESSON RECORDED: start from drug mechanism, not from data availability. The
+cohort was chosen because MIMIC had good kidney flags, which is backwards.
+An earlier 50+50 hand-selected analysis had shown 20% vs 10% (p=0.003); this was
+almost certainly a small-sample false positive. Reported honestly, pivoted.
+
+--- Apr 2026: PHASE 2 - EC50 CALIBRATION. WORKS. ---
+Realized personalization does not require comorbidity. Per-patient EC50
+calibration benefits everyone. This became the digital twin contribution.
+
+--- Apr 2026: PHASE 3 - ALGORITHM-ARCHITECTURE MATCHING. FAILED. ---
+Hypothesis: LSTM prefers temporal mechanistic features, XGBoost prefers static.
+RESULT: both relied more on static; differences within noise (SD > mean effect).
+Directional hypothesis did not hold. Failed to reject null again.
+This framing is ABANDONED. Any document still describing it is superseded.
+
+--- Apr 2026: LSTM STABILITY INVESTIGATION ---
+Multi-seed runs showed MAE ranging 0.35-0.45 across seeds. Root cause: early
+stopping triggering at very different epochs (18 to 50). Switched to fixed
+50-epoch training. Coefficient of variation dropped ~10% -> ~4%.
+
+--- Apr/May 2026: PHASE 4 - CAPACITY SWEEP. THE DISCOVERY. ---
+Noticed in the failed ablation that FULL_HYBRID LSTM (most features) performed
+WORST at 16 units. Classic overfitting signature.
+Hypothesis: small LSTMs benefit from mechanistic features as physiological
+priors; large LSTMs have enough capacity without them, so the same features
+become noise.
+Ran 4/8/16/32 units x 5 configs x 10 seeds = 200 runs, ~3 hours overnight.
+RESULT: clean monotonic decay, 10.4% -> 4.5% -> 0.7% -> 0.6%.
+This became the paper's headline.
+
+--- May 2026: repository restructuring ---
+Reorganized into a publication-ready structure. Local execution pipeline built.
+SQL query templates created (but see GOTCHAS - the real queries were not saved).
+
+--- Jun 2026: verification pass ---
+Located capacity_sweep_results.csv on the experiment branch. Verified every
+paper number against it. All matched. Computed formal trend statistics.
+Discovered the 16-unit table inconsistency (see OPEN ITEMS).
+
+--- Sep 2026: provenance pass ---
+Created this file at the repo root. Corrected the repository visibility (it is
+PUBLIC, not private) and audited the history for patient data (clean). Merged
+experiment/lstm-capacity-sweep into main. Recovered the exact run timestamps for
+both the 16-unit ablation and the capacity sweep from the run logs, and recorded
+the sweep commit hash, the machine specs, and the exact installed package
+versions. Recorded, but did not resolve, the src/ script-inventory discrepancy.
+
+================================================================================
+8. SCRIPT INVENTORY
+================================================================================
+
+CURRENT:
+  src/01_build_features.py
+      Reads: data/kidney_subgroups_{patients,propofol,sas}.csv
+      Writes: cached_features.pkl
+      Runs the Eleveld PK ODEs per patient, calibrates EC50 via Brent's method,
+      builds prediction instances. Slow step (~15-30 min full cohort).
+
+  src/02_run_ablation.py
+      Reads: cached_features.pkl
+      Writes: ablation_results.csv (appends incrementally, resumable)
+      5 configs x (1 XGBoost + 10 LSTM seeds) at LSTM_UNITS=16.
+
+  src/03_analyze_results.py
+      Reads: ablation_results.csv
+      Writes: summary_statistics.csv, degradation_analysis.csv
+      NOTE: its console output still frames results around the ABANDONED
+      algorithm-architecture hypothesis. Ignore that narration.
+
+  src/04_make_figures.py
+      Reads: degradation_analysis.csv
+      Writes: figures/ablation_main.{png,pdf}, figures/absolute_mae.{png,pdf}
+      These are the 16-UNIT ABLATION figures, NOT the capacity result.
+
+  src/05_cohort_figures.py                         [WRITTEN, NOT YET RUN]
+      Reads: cached_features.pkl, data/kidney_subgroups_patients.csv (optional)
+      Writes: figures/cohort/*, cohort_table1.csv, cohort_correlations.csv
+      Kahveci's request: cohort distributions + per-patient scatter plots with
+      explicit correlations. Computes per-patient MAE by retraining the 4-unit
+      FULL_HYBRID LSTM with the same split, because 02_run_ablation.py only
+      saves aggregate MAE.
+      BLOCKED: requires cached_features.pkl (local only).
+      [DISCREPANCY 2026-09-02] This file is NOT present in the repo or in any
+      commit. See Section 2.
+
+  src/07_capacity_stats.py                         [WRITTEN, NOT YET RUN]
+      Reads: capacity_sweep_results.csv
+      Writes: capacity_trend_stats.txt, figures/capacity/*
+      Spearman monotonicity test, exponential decay fit, linear-on-log trend.
+      [DISCREPANCY 2026-09-02] This file is NOT present in the repo or in any
+      commit. See Section 2.
+
+  --- PRESENT IN THE REPO BUT ABSENT FROM THE INVENTORY ABOVE ---
+  Added to this file 2026-09-02. These are the scripts that actually produced
+  the headline result. All three landed in commit 2fa4c4c.
+
+  src/02b_run_capacity_sweep.py
+      Reads: cached_features.pkl
+      Writes: capacity_sweep_results.csv (appends incrementally, resumable;
+      the resume key is the tuple (configuration, seed, lstm_units))
+      LSTM_UNITS_LIST = [4, 8, 16, 32], 5 configs, 10 seeds = 200 LSTM runs.
+      Uses the same random_state=42 patient split as 02_run_ablation.py so the
+      numbers are directly comparable. XGBoost is deliberately not rerun here
+      because it does not depend on LSTM capacity.
+
+  src/03b_analyze_capacity_sweep.py
+      Reads: capacity_sweep_results.csv
+      Writes: capacity_sweep_summary.csv
+      Computes degradation against the FULL_HYBRID baseline AT EACH SIZE, not
+      against a single global baseline, because absolute MAE shifts with
+      capacity. Prints the coverage grid, the degradation table, the absolute
+      MAE table, and a monotonicity check.
+
+  src/04b_plot_capacity_sweep.py
+      Reads: capacity_sweep_summary.csv
+      Writes: figures/capacity_sweep_main.{png,pdf},
+              figures/capacity_heatmap.{png,pdf}
+
+SUPERSEDED / NOT NEEDED:
+  src/06_capacity_sweep.py
+      Would regenerate the capacity sweep. NOT NEEDED, the sweep results already
+      exist on the experiment branch. Kept as documentation of how the sweep was
+      produced and for reproducibility by others.
+      [DISCREPANCY 2026-09-02] This file is NOT present in the repo or in any
+      commit. The role described here is filled by src/02b_run_capacity_sweep.py,
+      which IS present and IS what produced the sweep. See Section 2.
+
+  ablation_results_3seeds.csv
+      Earlier 3-seed run. SUPERSEDED by the 10-seed version. Do not use.
+
+  docs/paper_draft.tex, docs/paper_skeleton.md, docs/study_guide_v*.md
+      All describe the ABANDONED multi-algorithm and algorithm-architecture
+      framing. SUPERSEDED. Do not mistake their numbers for current results.
+
+  paper/main.tex, paper/references.bib
+      Old framing. The live manuscript is in Overleaf.
+
+================================================================================
+9. GOTCHAS AND OPEN ITEMS
+================================================================================
+
+--- GOTCHAS (things that broke, and why) ---
+
+BibTeX "expecting a { or (" errors.
+    Cause: the references.bib header comment mentioned @article, @inproceedings,
+    etc. BibTeX ignores % comments and parses any @ as an entry type.
+    Fix: removed all @ characters from comment text.
+
+Early stopping caused LSTM instability.
+    Fix: fixed 50 epochs, no early stopping. CV dropped from ~10% to ~4%.
+
+The pkl and patient CSVs are invisible to collaborators.
+    .gitignore excludes *.pkl, data/*.csv, *kidney*.csv, *sas*.csv,
+    *propofol*.csv. This is CORRECT under the MIMIC DUA, but it means cloning
+    the repo does NOT give you the data. Any analysis needing the pkl can only
+    run on the primary workstation.
+
+git core.autocrlf=true produced false "file changed" hashes on Windows.
+    Normalized comparison showed byte-identical content.
+
+Python 3.14 does not support TensorFlow.
+    Use a 3.10 or 3.11 environment. The workstation venv is Python 3.11.4.
+
+pip install sklearn fails.
+    The package is scikit-learn. sklearn is a deprecated shim.
+
+--- OPEN ITEMS ---
+
+[CRITICAL] 16-unit numbers are inconsistent between two tables in the manuscript.
+    Ablation table (from main branch run):   FULL_HYBRID 0.3970, PURE_ML -0.33%
+    Capacity table (from sweep branch run):  FULL_HYBRID 0.3819, PURE_ML +0.67%
+    These are the SAME model configuration from TWO DIFFERENT RUNS. Seed-level
+    variance explains the difference (SDs are 0.026-0.033), but a reviewer will
+    notice the same model reported with two MAEs.
+    DECISION NEEDED: standardize both tables on capacity_sweep_results.csv as the
+    single source of truth. Then regenerate the ablation table's LSTM column.
+
+[CRITICAL] The real BigQuery SQL was never saved.
+    queries/*.sql contain only TODO stub templates. The actual queries exist only
+    in the BigQuery query history. Without them the cohort cannot be reproduced,
+    which undermines the reproducibility claim in the Data Availability section.
+    MUST be recovered and committed before submission.
+    Note: queries/README.md also advertises extract_demographics.sql and
+    extract_kidney_comorbidities.sql, neither of which exists.
+
+[DONE 2026-09-02] Merge experiment/lstm-capacity-sweep into main.
+    Fast-forwarded main to 2fa4c4c and pushed. See Section 3.
+
+[HIGH] Add the formal trend statistics to the manuscript.
+    Spearman rho = -1.0, exponential fit R^2 = 0.99. Currently only in this file.
+
+[HIGH] Write the bias-variance defense subsection.
+    The strongest reviewer objection is "this is just the bias-variance
+    tradeoff, you rediscovered overfitting." The defense: mechanistic features
+    specifically act as the regularizer, and the 10.4% gain is a BIAS reduction
+    (accuracy improvement), not just variance damping. Generic regularizers
+    (dropout, L2) do not inject correct structure the way calibrated pharmacology
+    does. Without this subsection the contribution collapses into a known fact.
+
+[HIGH] Related Work section is entirely placeholders.
+
+[MEDIUM] Run 05_cohort_figures.py (needs workstation).
+[MEDIUM] Run 07_capacity_stats.py and add the figure.
+    Both are blocked on the Section 2 discrepancy: neither script exists in the
+    repo, so there is currently nothing to run.
+[MEDIUM] Section 4.2 (population vs calibrated Eleveld performance) not yet done.
+[MEDIUM] Hyperparameter table for the manuscript, from Section 5 above.
+
+[MEDIUM] Verify all bibliography entries against primary sources.
+    Confidence HIGH: eleveld2018, chen2016, hochreiter1997, kingma2015
+    Confidence LOW / MUST VERIFY:
+      vellinga2021  - may be the wrong paper; author list ends in "and others"
+      johnson2023   - pages={1} is almost certainly wrong; Scientific Data uses
+                      article numbers
+      corral2020    - verify volume/pages
+    Replace ALL "and others" with complete author lists; journals require them.
+    Check which keys are actually cited: breiman2001, smola2004, wong2011 may now
+    be unused since RF/SVM/color discussion were dropped.
+
+[MEDIUM] Survey paper (Paper 1) revisions requested by Reviewer 1:
+    - Duplicated paragraphs in Sections 5.6.1, 7.1, and 3.6
+    - Misassigned references: radiation oncology cited to [18,29] (single-cell
+      RNA-seq / pulmonary hemodynamics), orthopedics to [75,35], pulmonology to
+      [4,59]
+    - Ref [40] used for two distinct claims; needs a second source
+    - Section 5.5 hyperbolic embeddings claim needs a direct citation
+    - Section 5.2 needs CIs or a note on the single-trial n=72 basis
+
+[LOW] Update README.md and CHANGELOG.md. Both still describe the ABANDONED
+    algorithm-architecture framing and the six-algorithm comparison.
+
+--- ENVIRONMENT AND RUN PROVENANCE  [FILLED 2026-09-02] ---
+
+Exact installed package versions, from pip freeze in the workstation venv
+(venv/Scripts/python.exe) on 2026-09-02. requirements.txt specifies ranges only;
+THESE are the versions present on the machine that produced the results:
+
+    Python           3.11.4
+    numpy            1.26.4
+    pandas           2.3.3
+    scipy            1.17.1
+    scikit-learn     1.8.0
+    xgboost          2.1.4
+    tensorflow       2.21.0
+    keras            3.14.0
+    matplotlib       3.10.9
+    seaborn          0.13.2
+    statsmodels      0.14.6
+    shap             0.49.1
+    lime             0.2.0.1
+
+    CAVEAT: this is the venv state as of 2026-09-02, roughly four months after
+    the runs. If any package was upgraded in the interim, the version recorded
+    here is not necessarily the version that produced the results. No lockfile
+    or pip freeze was captured at run time, so this cannot be verified. Treat it
+    as the best available evidence, not as certainty. Capture pip freeze at the
+    START of every future run.
+
+Machine used for the runs (workstation, read 2026-09-02):
+    CPU      11th Gen Intel Core i9-11900H @ 2.50GHz, 8 physical / 16 logical
+    RAM      31.7 GB
+    GPU      NVIDIA GeForce RTX 3070 Laptop GPU (present but NOT used)
+    OS       Windows 11 Home 10.0.26200
+    NOTE: step02b_capacity_sweep.log contains no CUDA or GPU device lines and
+    does contain oneDNN CPU messages, so the sweep ran CPU-only. The ~2h48m
+    sweep duration is a CPU number; a GPU rerun would not be comparable.
+
+[TODO - STILL UNRESOLVED, DO NOT GUESS]
+    IRB / DUA reference number and approval date
+    MIMIC-IV extraction date (the date the BigQuery queries were actually run)
+
+================================================================================
+10. WHICH RUN PRODUCED THE PAPER'S NUMBERS
+================================================================================
+
+This is the section that matters most later.
+
+The 3.34% XGBoost digital twin result and the 70.4% ONLY_MECH result:
+    FROM: degradation_analysis.csv on branch main
+    PRODUCED BY: src/02_run_ablation.py with LSTM_UNITS=16, N_SEEDS=10
+    LOGS: step02_10seeds.log, step03_10seeds.log
+    RUN DATE [RECOVERED 2026-09-02 from step02_10seeds.log]:
+        started  2026-05-07 16:52:06
+        finished 2026-05-07 17:36:03
+        duration 43 min 57 s
+    This supersedes the earlier note that the run date was unrecorded and that
+    file mtimes showed 2026-06-18. The log header is authoritative; mtimes are
+    not.
+
+The capacity-moderation headline (10.4/4.5/0.7/0.6%) and the 0.3514 best model:
+    FROM: capacity_sweep_summary.csv, derived from capacity_sweep_results.csv
+    PRODUCED BY: src/02b_run_capacity_sweep.py, summarized by
+                 src/03b_analyze_capacity_sweep.py
+    LOGS: step02b_capacity_sweep.log, step03b_capacity_sweep.log
+    COMMIT [RECORDED 2026-09-02]:
+        abbrev hash   2fa4c4c
+        full hash     2fa4c4c4ac81d7afb1ccdf2b5dd940a7ed2c3897
+        author date   2026-05-09 04:07:52 -0400
+        author        cmorris2945 <cmorris2945@yahoo.com>
+        subject       LSTM capacity sweep: 4 sizes x 5 configs x 10 seeds
+        branch        committed on experiment/lstm-capacity-sweep;
+                      merged to main 2026-09-02 by fast-forward
+    RUN DATE [RECOVERED 2026-09-02 from step02b_capacity_sweep.log]:
+        started  2026-05-09 01:16:27
+        finished 2026-05-09 04:04:25
+        duration 2 h 47 min 58 s   (the "~3 hours overnight" estimate was close)
+        committed 3 min 27 s after the run finished, in the same session
+        all 200 runs completed in one pass, no resume
+        per-size start times:
+            units=4   01:16:27
+            units=8   01:59:38
+            units=16  02:41:58
+            units=32  03:20:33
+    This supersedes the earlier note that the run date was unrecorded and that
+    file mtimes showed 2026-06-18. The log header is authoritative; mtimes are
+    not.
+
+The formal trend statistics (Spearman, exponential fit):
+    COMPUTED: 2026-06-18, from the verified degradation values in
+    capacity_sweep_summary.csv. Not regenerated by any committed script.
+    [TODO] no script in the repo currently produces these numbers; see the
+    Section 2 discrepancy regarding 07_capacity_stats.py.
+
+ACTION [DONE 2026-09-02]: the commit hash and author date for the sweep are
+recorded above and in Section 3. "Which run made the paper's numbers" is now
+answerable from this file alone, for both the ablation and the sweep.
+
+REMAINING RISK: the per-run provenance chain depends on the step*.log files
+staying committed alongside the CSVs. Do not delete them as clutter. They are
+the only record of when the runs happened.
+
+================================================================================
+END
+================================================================================
