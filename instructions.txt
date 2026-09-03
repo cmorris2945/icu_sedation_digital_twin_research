@@ -105,23 +105,16 @@ Repo root: <local clone path>/icu_sedation_digital_twin_research/
   Also note: src/lib/experiment_tracker.py and src/lib/publication_plots.py are
   imported by nothing in src/. They are currently dead code.
 
-  queries/                       As of 2026-09-02: 2 complete, 1 partial.
-                                 All text present is verbatim as run. Nothing
-                                 has been invented to fill gaps.
-    extract_propofol_patients.sql      [PARTIAL] "QUERY 2". Real text, but
-                                       TRUNCATED mid-expression inside the
-                                       demographics CTE. Holds the cohort
-                                       CTEs, stay_info, the kidney ICD
-                                       categorisation and patient_kidney_
-                                       summary. Missing the age expression
-                                       tail, the weight/height LEFT JOINs and
-                                       the final SELECT. Will not run.
-                                       Job ID bquxjob_6570a768_19d84255827.
-                                       The earlier guessed template that
-                                       contained the two wrong criteria has
-                                       been REMOVED from this file.
-    extract_propofol_infusions.sql     [COMPLETE] "QUERY 3", verbatim as run
-    extract_sas_observations.sql       [COMPLETE] "QUERY 4", verbatim as run
+  queries/                       COMPLETE as of 2026-09-02. All three queries
+                                 hold verbatim runnable text. The cohort can
+                                 be rebuilt from this repo. Do not let these
+                                 revert to stubs.
+    extract_propofol_patients.sql      "QUERY 2" - cohort, demographics,
+                                       anchor-year age, weight/height joins,
+                                       kidney ICD flags. 8 CTEs.
+    extract_propofol_infusions.sql     "QUERY 3" - infusion events. 4 CTEs.
+    extract_sas_observations.sql       "QUERY 4" - SAS observations. 4 CTEs.
+    README.md                          usage notes and the threshold caveat
 
   paper/
     main.tex                     [OUTDATED - old framing, superseded by Overleaf]
@@ -541,15 +534,24 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
---- Sep 2026: QUERY 2 partially recovered ---
-The patients query was supplied but the text was cut off mid-expression in the
-demographics CTE. The real portion replaced the previously guessed template,
-so the file now holds the genuine cohort CTEs, the icustays join and the full
-kidney ICD categorisation, none of which had ever been documented anywhere.
-The file is marked as non-runnable until the tail is recovered. Reading the
-recovered text also turned up two defects in the kidney flag logic, both
-recorded as MEDIUM in Section 9: ICD codes matched by the WHERE clause but
-categorised NULL (N19 and unlisted N17x), and kidney flags being
+--- Sep 2026: QUERY 2 recovered; the SQL item is CLOSED ---
+The patients query was supplied in two pieces, the first truncated
+mid-expression in the demographics CTE and the tail following separately. The
+reassembled query replaced the previously guessed template. All three
+extraction queries now hold complete verbatim text, closing an item that had
+been CRITICAL since the repository was restructured in May: the cohort can be
+rebuilt from this repository, and the provenance chain from MIMIC-IV through
+to cached_features.pkl is unbroken.
+
+QUERY 2 was verified to be the query that produced kidney_subgroups_patients.
+csv by checking every structural signature the SQL implies against the CSV:
+column order, row uniqueness and sort order, row count, and in particular the
+COALESCE asymmetry, where kidney flags have no nulls but weight and height do.
+All matched.
+
+Reading the recovered text also turned up two defects in the kidney flag
+logic, both recorded as MEDIUM in Section 9: ICD codes matched by the WHERE
+clause but categorised NULL (N19 and unlisted N17x), and kidney flags being
 hospital-admission level while applied to ICU-stay rows. Both affect only the
 abandoned Phase 1 analysis, not any current result.
 
@@ -802,46 +804,60 @@ pip install sklearn fails.
         queries/extract_propofol_infusions.sql stub header (provenance added)
         queries/extract_sas_observations.sql   stub header (provenance added)
 
-[CRITICAL - MOSTLY CLOSED 2026-09-02] Real BigQuery SQL: 2 complete, 1 partial.
+[CLOSED 2026-09-02] Real BigQuery SQL: all three queries in the repo.
 
-    COMPLETE, verbatim as run:
-        queries/extract_propofol_infusions.sql   QUERY 3
-        queries/extract_sas_observations.sql     QUERY 4
+    This item was CRITICAL for months. It is now done. All three files hold
+    complete, runnable, verbatim query text. Nothing was invented anywhere in
+    them; QUERY 2 arrived in two pieces and was reassembled from those pieces
+    only.
+        queries/extract_propofol_patients.sql    QUERY 2  (8 CTEs)
+        queries/extract_propofol_infusions.sql   QUERY 3  (4 CTEs)
+        queries/extract_sas_observations.sql     QUERY 4  (4 CTEs)
 
-    PARTIAL, and this is the remaining blocker:
-        queries/extract_propofol_patients.sql    QUERY 2
-    The supplied QUERY 2 text was TRUNCATED mid-expression inside the
-    `demographics` CTE, at:
-        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0),
-    Everything up to that point is now in the file verbatim. Nothing was
-    invented to complete it. Still missing:
-        - the rest of the age expression (YEAR unit, + p.anchor_age AS age)
-        - the gender/weight/height projection
-        - the LEFT JOINs to mimiciv_3_1_derived.first_day_weight and
-          first_day_height
-        - the FROM/JOIN clauses of the demographics CTE
-        - the final SELECT assembling demographics + patient_kidney_summary
-    The file carries a banner saying it will not run and must not be cited as
-    the method. This is still strictly better than the wrong guessed template
-    it replaced, because every line now present is real, but the cohort STILL
-    cannot be rebuilt end to end and the Data Availability statement is still
-    not fully supportable. Retrieve the tail with job ID
-    bquxjob_6570a768_19d84255827.
+    The cohort can now be rebuilt from this repository by anyone with
+    credentialed MIMIC-IV access, and the Data Availability statement is
+    finally supportable. Together with the extraction date (2026-04-12) and
+    the three job IDs in Section 5, the provenance chain from MIMIC-IV to
+    cached_features.pkl is complete and unbroken.
 
-    WHAT THE PARTIAL QUERY 2 CONFIRMED:
-    - The anchor-year age computation is real and appears exactly where
-      Section 5 says it does. The YEAR argument and "+ anchor_age" fall just
-      past the cut, so the pattern is unambiguous but not literally verbatim.
-      Flag this if a reviewer asks for the exact expression.
+    VERIFICATION that QUERY 2 is the query that produced the CSV. Checked
+    2026-09-02 against kidney_subgroups_patients.csv; every structural
+    signature the SQL implies is present in the data:
+        final SELECT column order == CSV header order, exactly
+        rows unique per stay_id            (INNER JOIN icustays, 1 row/stay)
+        rows sorted ascending by stay_id   (ORDER BY d.stay_id)
+        1,490 rows                         (the extraction cohort)
+        zero nulls in all 11 kidney flags  (COALESCE(..., 0))
+        nulls SURVIVE in weight and height (deliberately NOT coalesced)
+        gender is raw 'M'/'F'              (no recoding in SQL; the 1/0
+                                            encoding happens in
+                                            01_build_features.py)
+        age integer-valued, range 18-93    (DATETIME_DIFF ... YEAR +
+                                            anchor_age)
+    That the COALESCE asymmetry shows up in the data exactly as the SQL
+    predicts is the strongest single check available without BigQuery access.
+
+    WHAT THE FULL QUERY 2 SETTLED:
+    - The anchor-year age expression is now VERBATIM, no longer inferred:
+        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0), YEAR)
+          + p.anchor_age AS age
+      Cite it in Methods as written.
+    - Weight and height are LEFT JOINed on stay_id from
+      mimiciv_3_1_derived.first_day_weight and first_day_height. Note this
+      adds a dependency on the MIMIC-derived schema, not just the raw tables.
+    - The missingness of the two feature families behaves differently and the
+      manuscript should not treat them alike: kidney flags are COALESCEd to 0,
+      so "no diagnosis recorded" is indistinguishable from "diagnosis absent",
+      whereas weight/height nulls survive into the CSV and are visible.
     - The cohort CTE block is identical to QUERY 3 and QUERY 4, differing only
-      in that QUERY 2's CTEs also project sas_count and propofol_count. Those
-      two columns do NOT appear in kidney_subgroups_patients.csv, so they are
-      either dropped by the final SELECT or were used only for inspection.
-    - The kidney flags come from hosp.diagnoses_icd. Verified against the CSV:
-      the flags are internally consistent with this logic (no row has
-      has_ANY_Kidney set without a specific flag, or vice versa). Prevalence:
-      AKI 28.7%, Hypertensive_Kidney 13.1%, CKD_Unspecified 8.8%,
-      CKD_Stage_5_ESRD 4.6%, ANY 36.2%, no flags at all 63.8%.
+      in that QUERY 2's CTEs also project sas_count and propofol_count. The
+      final SELECT drops both, so they never reach the output.
+    - Minor redundancy, harmless, preserved as run: stay_info re-derives the
+      icustays join that demographics performs again independently, and
+      stay_info.subject_id is selected but only hadm_id is used.
+    - Kidney flag prevalence, verified against the CSV: AKI 28.7%,
+      Hypertensive_Kidney 13.1%, CKD_Unspecified 8.8%, CKD_Stage_5_ESRD 4.6%,
+      ANY 36.2%, no flags at all 63.8%.
 
     WHAT THE RECOVERED SQL SETTLED:
     - Thresholds are HARD-CODED LITERALS, not derived or parameterised:

@@ -38,14 +38,26 @@ Our cohort name kidney_subgroups was chosen during an earlier phase of the proje
 
 This naming history is preserved in this documentation because changing it now would break compatibility with our existing analysis scripts and require us to retest everything. In the final paper we will describe the cohort by its inclusion criteria rather than its historical name to avoid confusing readers.
 
-## Pending Items
+## Status
 
-**Updated 2026-09-02.** Two of the three queries now hold their real text, pasted verbatim as run: `extract_propofol_infusions.sql` (QUERY 3) and `extract_sas_observations.sql` (QUERY 4).
+**Complete as of 2026-09-02.** All three queries now hold their real text, verbatim as run against MIMIC-IV v3.1 on 12 April 2026:
 
-One query is still outstanding: `extract_propofol_patients.sql` (QUERY 2), which produces `kidney_subgroups_patients.csv`. It is the only place the demographics, the anchor-year age computation, the `first_day_weight` / `first_day_height` joins and the kidney comorbidity flags are defined, so the cohort still cannot be rebuilt from this repository until it is recovered. It can be retrieved from BigQuery history using job ID `bquxjob_6570a768_19d84255827`. The stub file carries a banner warning that the placeholder template inside it is a guess containing two known-wrong criteria, and must not be run or cited.
+| File | BigQuery history | Job ID |
+|---|---|---|
+| `extract_propofol_patients.sql` | QUERY 2 | `bquxjob_6570a768_19d84255827` |
+| `extract_propofol_infusions.sql` | QUERY 3 | `bquxjob_10b927f2_19d84266954` |
+| `extract_sas_observations.sql` | QUERY 4 | `bquxjob_796d82a8_19d84277e85` |
 
-Note that the file descriptions above mention `extract_demographics.sql` and `extract_kidney_comorbidities.sql`. Neither file exists; QUERY 2 appears to subsume both. This section should be reconciled once QUERY 2 is recovered.
+The cohort can be reproduced from this repository by any researcher with credentialed MIMIC-IV access. Run them in the order 2, 3, 4 and save the outputs under the filenames given in the sections above.
 
-A caution for anyone re-running the extraction: the `>= 15` SAS and `>= 5` propofol thresholds are hard-coded literals repeated independently inside each query rather than defined once, so changing a threshold means editing all three files or the resulting CSVs will describe different cohorts.
+Note that the file descriptions earlier in this README mention `extract_demographics.sql` and `extract_kidney_comorbidities.sql`. Neither file exists, and neither is needed: QUERY 2 subsumes both, producing demographics and kidney flags in a single query. Those two paragraphs are stale and should be folded into the QUERY 2 description.
 
-The queries should also include comments inline explaining what each clause does, since reviewers and other researchers may not be familiar with the specific structure of the MIMIC-IV tables. Adding these explanatory comments will be part of the documentation work I do before the paper submission.
+## Cautions for anyone re-running the extraction
+
+The `>= 15` SAS and `>= 5` propofol thresholds are hard-coded literals repeated independently inside each of the three queries rather than defined once. Changing a threshold means editing all three files, or the resulting CSVs will describe different cohorts.
+
+The `>= 15` SAS threshold counts observations across the entire ICU stay. The analysis applies a further 72-hour window downstream in `01_build_features.py`, which the SQL knows nothing about, so the threshold does not guarantee 15 *usable* observations. See `instructions.txt` Section 11.1.
+
+QUERY 2 depends on the MIMIC-derived schema (`mimiciv_3_1_derived.first_day_weight` and `first_day_height`), not only the raw `hosp` and `icu` tables.
+
+The kidney comorbidity flags in QUERY 2 carry two known defects, documented in the file header and in `instructions.txt` Section 9. They affect only the abandoned Phase 1 kidney analysis and no current result, but do not reuse the flags without fixing both.
