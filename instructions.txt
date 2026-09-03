@@ -535,6 +535,18 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
+--- Sep 2026: EC50 pinning diagnosed ---
+08_ec50_diagnostics.py established that EC50 boundary pinning has TWO separate
+causes, neither pharmacological. Pinned-low (52%) is the exposure problem: 10x
+lower Ce than interior patients, and 95.5% have no interior optimum at all.
+Pinned-high (45 patients) is a bug: they are exactly the patients whose
+calibration window contributed zero usable points, so the objective is
+identically flat and scipy terminates at 9.999995. The brief expected pinning
+to track sedation level; it does not, the groups differ by 0.25 SAS units.
+What matters is that every group sits ~3.4 SAS units below the Eleveld E0=7
+drug-free baseline, so EC50 is absorbing a scale mismatch. Recorded in
+Section 11.5. Diagnostic only, nothing was re-fitted.
+
 --- Sep 2026: cohort figures, and the persistence baseline problem ---
 05_cohort_figures.py was written and run, producing the cohort distributions,
 Table 1, the per-patient error scatters and the correlations Kahveci asked
@@ -893,6 +905,15 @@ pip install sklearn fails.
     [ ] Report the attrition chain honestly: 1,490 extracted -> 1,489 in the
         analysis dataset -> 30,931 prediction instances. Section 11.3 has the
         reason for the single dropped patient.
+
+    PERSONALISATION CLAIM - must change:
+    [ ] EC50 is pinned at a search bound for 55% of the cohort (52% low, 3%
+        high) and is therefore not a fitted parameter for those patients. Do
+        not describe EC50 as patient-calibrated without stating this. See
+        Section 11.5 for the two distinct mechanisms and the options.
+    [ ] The 45 upper-bound values are a scipy artefact on an empty objective,
+        not estimates. If they are kept, say so; the cleaner course is the
+        two-line fallback fix and a regeneration.
 
     LIMITATIONS - must add:
     [ ] Zero-fill imputation: 5.4% of LSTM Ce sequence steps (16,784 of
@@ -1360,6 +1381,105 @@ propagates through the PK simulation rather than sitting in a feature vector.
 
 Neither default is mentioned in the manuscript. Both belong in Methods, and the
 height figure belongs in Limitations.
+
+--- 11.5 EC50 BOUNDARY PINNING: TWO SEPARATE FAILURES, NEITHER PHARMACOLOGICAL ---
+
+Established 2026-09-03 by src/08_ec50_diagnostics.py (diagnostic only; the
+calibration was not modified or re-run). Outputs: ec50_diagnostics.csv,
+ec50_patient_level.csv, figures/cohort/ec50_pinning_diagnostics.{png,pdf}.
+
+    pinned-low  (EC50 = 0.5,  the lower bound)   774 patients   52.0%
+    pinned-high (EC50 = 10.0, the upper bound)    45 patients    3.0%
+    interior                                     670 patients   45.0%
+    TOTAL PINNED                                 819 patients   55.0%
+
+For 55% of the cohort, EC50_calibrated is not a fitted parameter. It is the
+optimiser reporting that it wanted to leave the search interval. This is the
+feature that carries the paper's "patient-specific digital twin" claim.
+
+MECHANISM 1, pinned-low: no drug to calibrate against.
+The stated exposure hypothesis is CONFIRMED, decisively.
+
+    variable (median)              pinned-low   interior   Kruskal p
+    mean Ce (ug/mL)                   0.0763     0.7871     9.9e-101
+    median Ce (ug/mL)                 0.0196     0.5357     8.0e-102
+    max Ce reached (ug/mL)            0.4185     1.8441     6.7e-86
+    fraction of instances Ce < 0.1    0.7778     0.2000     1.6e-93
+    fraction of instances Ce < 0.01   0.3929     0.0000     9.3e-93
+    mean propofol rate               0.0000    15.1192     9.0e-67
+
+Interior patients carry 10.3x the effect-site concentration of pinned-low
+ones at the median. For a pinned-low patient with Ce ~ 0.08, sigmoid_emax
+returns about 6.65 at EC50 = 0.5 and about 7.00 at EC50 = 10, against an
+observed SAS near 3.9. The loss therefore decreases monotonically toward the
+lower bound and the optimiser rails there while still missing the observation
+by roughly 2.7 SAS units. Direct confirmation from profiling the objective on
+a grid: 739 of 774 pinned-low patients (95.5%) have no interior minimum at
+all. Panel (c) of the figure shows this.
+
+MECHANISM 2, pinned-high: an empty objective. This is a BUG, not a fit.
+The exposure hypothesis does NOT explain this group; their drug exposure is
+essentially normal (median mean-Ce 0.605 against 0.787 for interior).
+
+    All 45 pinned-high patients are EXACTLY the 45 patients whose calibration
+    window contributed zero usable points, and no others. Set identity was
+    verified, not inferred.
+
+    Cause: ec50_loss accumulates only calibration observations whose index
+    falls inside the 72-hour simulated trajectory, then returns
+    loss / max(n, 1). When n = 0 that is 0/1 = 0 for every candidate, so the
+    objective is identically flat. scipy's bounded minimize_scalar on a
+    constant function terminates at 9.999995, and all 45 patients carry
+    exactly that value. Confirmed by running minimize_scalar on a literal
+    constant: it returns 9.999995.
+
+    So these 45 EC50 values are a golden-section terminus. They encode
+    nothing about the patient. This is the 72-hour window (Section 11.1)
+    causing a second, previously unnoticed failure.
+
+THE BRIEF'S SAS HYPOTHESIS IS NOT SUPPORTED.
+Pinning does not track how awake or sedated a patient is. Mean SAS is 3.92
+(pinned-low), 3.67 (pinned-high), 3.82 (interior): a spread of 0.25 SAS units
+across groups. What matters is not the difference between groups but the
+distance from the model's own drug-free baseline. Every group sits about 3.3
+to 3.5 SAS units BELOW E0 = 7. The Eleveld E0/Emax scale says an ICU patient
+with no propofol on board should read 7 (dangerous agitation); these patients
+read about 3.5 while sedated by everything else in an ICU. EC50 is absorbing
+that baseline mismatch. The right conclusion is that the Eleveld PD scale does
+not transfer to ICU SAS without re-anchoring E0, not that these patients have
+unusual propofol sensitivity.
+
+IMPACT: the degeneracy costs no accuracy, which is the damning part.
+Per-patient MAE, test patients only: pinned-low 0.2125 (n=165), interior
+0.3220 (n=122), Mann-Whitney p = 0.038. Pinned-low patients are predicted
+MORE accurately, not less. That is confounding rather than benefit: pinned-low
+patients are the low-exposure ones whose SAS barely moves, and per-patient
+error tracks within-patient SAS variability at rho = 0.85 (Section 9). They
+are simply the easy patients.
+
+Both implications belong in the paper:
+    - the boundary artefact is not degrading prediction, so there is no
+      accuracy argument for fixing it; and
+    - a feature that can be degenerate for 55% of the cohort at no cost to
+      accuracy is a feature carrying very little signal, which is consistent
+      with EC50_calibrated correlating 0.03 with the target and with the
+      NO_STATIC_MECH ablation barely moving.
+
+WHAT THIS MEANS FOR THE MANUSCRIPT
+The claim that per-patient EC50 calibration produces a patient-specific
+digital twin is not supportable as written. For 52% of patients the
+calibration had insufficient drug exposure to identify the parameter, and for
+another 3% it had no data at all. Options, in increasing order of work:
+    (a) Report the pinning honestly and restrict any personalisation claim to
+        the 45% of patients with an identifiable interior optimum.
+    (b) Fix the n = 0 case so it falls back to EC50_pop = 3.08 as the code's
+        own exception handler already intends. That is a two-line change and
+        removes 45 fabricated values. It changes the feature matrix, so
+        everything downstream would need regenerating.
+    (c) Re-anchor E0 to something appropriate for ICU SAS, or fit E0 jointly
+        with EC50. This is the real fix for mechanism 1 and it is a modelling
+        change, not a bug fix.
+Do not describe EC50 as patient-calibrated without addressing (a) at minimum.
 
 ================================================================================
 END
