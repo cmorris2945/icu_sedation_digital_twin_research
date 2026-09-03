@@ -1,0 +1,114 @@
+======================================================================
+EC50 BOUNDARY-PINNING DIAGNOSTICS
+======================================================================
+Started at: 2026-09-03 01:19:10
+DIAGNOSTIC ONLY - the calibration is not modified or re-run.
+
+Loaded 30,931 instances from 1,489 patients
+
+PINNING CLASSIFICATION
+   bounds [0.5, 10.0], tolerance 0.001
+   pinned-low     774  ( 52.0%)
+   pinned-high     45  (  3.0%)
+   interior       670  ( 45.0%)
+   TOTAL PINNED   819  ( 55.0%)
+
+CALIBRATION SET SIZES (reconstructed from the raw CSVs)
+   patients whose calibration window contributed ZERO usable points: 45
+   median nominal calibration points  : 24
+   median effective calibration points: 18
+
+Profiling the sigmoid objective per patient...
+   (proxy: uses each patient's prediction instances, not the exact
+    calibration half; see the module docstring)
+
+OBJECTIVE SHAPE vs FITTED OUTCOME (rows = fitted group, cols = profile shape)
+profile_shape  boundary-low  interior
+group                                
+interior                301       369
+pinned-high              32        13
+pinned-low              739        35
+   profile shape agrees with the fitted outcome for 74.4% of patients
+   patients whose objective is essentially flat (relative range < 1e-6): 1
+
+Merged per-patient MAE for 298 test patients from cohort_per_patient_mae.csv
+
+Wrote ec50_diagnostics.csv (15 rows) and ec50_patient_level.csv (1489 rows)
+
+GROUP COMPARISON (median [IQR])
+----------------------------------------------------------------------
+variable                                              pinned-low           pinned-high              interior   Kruskal p
+Mean propofol rate (mcg/kg/min)                              0.0               14.1759               15.1192    9.02e-67
+Median propofol rate (mcg/kg/min)                            0.0                   0.0                   0.0     7.8e-47
+Mean Ce (ug/mL)                                           0.0763                 0.605                0.7871   9.92e-101
+Median Ce (ug/mL)                                         0.0196                0.5143                0.5357      8e-102
+Max Ce reached (ug/mL)                                    0.4185                1.6307                1.8441    6.66e-86
+Fraction of instances with Ce < 0.1                       0.7778                0.2778                   0.2    1.57e-93
+Fraction of instances with Ce < 0.01                      0.3929                   0.0                   0.0    9.28e-93
+Prediction instances                                        18.0                  18.0                  18.0       0.558
+Mean observed SAS                                         3.9167                3.6667                3.8218     0.00542
+Within-patient SAS SD                                     0.4258                0.6794                0.4945    1.44e-07
+Within-patient SAS range                                     1.0                   2.0                   2.0    3.74e-06
+SAS observations (all)                                      50.0                  88.0                  43.0     0.00033
+Calibration points (nominal)                                25.0                  44.0                  21.0     0.00034
+Calibration points (effective)                              19.0                   0.0                  18.0    9.34e-30
+Per-patient MAE (test patients only)                      0.2125                 0.471                 0.322     0.00777
+
+======================================================================
+VERDICT
+======================================================================
+Median mean-Ce   : pinned-low 0.0763 | pinned-high 0.6050 | interior 0.7871
+Median mean-SAS  : pinned-low 3.917 | pinned-high 3.667 | interior 3.822
+
+EXPOSURE HYPOTHESIS: SUPPORTED for pinned-low. Those patients have
+   materially lower effect-site concentration than interior patients,
+   10.3x lower at the median, so the sigmoid has
+   little leverage and the objective runs monotonically to a bound.
+
+SECOND MECHANISM: the pinned-high group is a different failure entirely.
+   All 45 pinned-high patients are EXACTLY the patients whose
+   calibration window contributed zero usable points, and no others.
+   With no points to accumulate, ec50_loss returns loss/max(n,1) = 0
+   for every candidate, so the objective is identically flat and
+   minimize_scalar's bounded search terminates at ~9.999995 by
+   construction. Their EC50 is not an estimate of anything: it is
+   the optimiser's terminus on an empty objective. Note their drug
+   exposure is NORMAL (median mean-Ce 0.6050 vs interior 0.7871),
+   so the exposure hypothesis does NOT explain this group.
+
+SAS DIRECTION CHECK (the brief expected pinned-low awake / pinned-high sedated):
+   mean SAS: pinned-low 3.92 | pinned-high 3.67 | interior 3.82
+   spread across groups is 0.25 SAS units
+   NOT SUPPORTED. The groups barely differ in sedation level, so
+   pinning is not tracking how awake or sedated a patient is.
+   The comparison that matters is against the model's own drug-free
+   baseline E0 = 7. Every group sits far below it:
+      pinned-low   mean SAS 3.51  ->  3.49 units below E0
+      pinned-high  mean SAS 3.45  ->  3.55 units below E0
+      interior     mean SAS 3.70  ->  3.30 units below E0
+   That gap, not the between-group difference, is what the optimiser is
+   trying to close. A patient sitting ~3.4 SAS units below the drug-free
+   baseline with almost no modelled drug on board leaves the loss
+   monotonically decreasing in EC50, so it rails to the floor and still
+   cannot reach the observation. The pinning is the calibration absorbing
+   a baseline mismatch between the Eleveld E0/Emax scale and ICU SAS,
+   not a pharmacological property of the patient.
+
+IMPACT ON PREDICTION:
+   pinned-low median MAE 0.2125 (n=165) vs interior 0.3220 (n=122), Mann-Whitney p = 0.0378
+   Pinned-low patients are predicted MORE accurately than interior
+   ones, not less. The degenerate EC50 is not hurting anything.
+   The likely reason is confounding rather than benefit: pinned-low
+   patients are the low-exposure ones, whose SAS moves least, and
+   per-patient error tracks within-patient SAS variability almost
+   perfectly (rho = 0.85, see instructions.txt Section 9). They are
+   simply the easy patients. Two implications, both worth stating:
+   the boundary artefact costs no accuracy, and a feature whose
+   degeneracy costs no accuracy is a feature carrying little signal.
+
+Generating figure...
+   Saved figures\cohort\ec50_pinning_diagnostics.png
+   Saved figures\cohort\ec50_pinning_diagnostics.pdf
+
+Finished at: 2026-09-03 01:19:14
+EXIT_CODE: 0
