@@ -23,13 +23,31 @@ All queries saved in: `/home/claude/queries/` (to be created)
 
 ## 2. Cohort Selection Criteria
 
+**CORRECTED 2026-09-02** against the recovered BigQuery SQL (extraction date
+2026-04-12). The previous version of this table stated an age filter that was
+never applied and a SAS threshold of ≥2 assessments, which matched neither the
+extraction filter (≥15) nor the modeling requirement (≥11).
+
 | Criterion | Value | Justification |
 |-----------|-------|---------------|
-| Age | ≥18 years | Adult ICU patients only |
-| Propofol administration | Yes | Required for PK/PD modeling |
-| SAS/RASS scores | ≥2 assessments | Need temporal data for prediction |
-| ICU stay duration | [TBD] | |
-| Exclusions | [TBD] | e.g., pregnant patients, specific conditions |
+| Age | No filter applied | MIMIC-IV contains adult patients only by construction. Cohort is de facto adult (observed range 18–93), but no `age >= 18` predicate exists in any query. Do not describe one. |
+| Propofol administration | ≥5 infusion events, rate > 0 | Extraction filter. Biases the cohort toward sustained infusions; state this as a selection effect. |
+| SAS assessments | ≥15 per ICU stay | Extraction filter (itemid 223753), valuenum restricted to 1–7. |
+| SAS assessments (modeling) | ≥11 per ICU stay | Separate downstream requirement in `01_build_features.py` (10 history steps + 1 prediction target). Never binds, since the extraction filter already demands 15. **Not** the cohort inclusion criterion. |
+| Simulation window | First 72 h after first propofol event | Acts as an observation filter, not just a solver setting: discards 55.0% of extracted SAS observations recorded after the window and 7.9% recorded before the first infusion. |
+| ICU stay duration | No explicit filter | |
+| Exclusions | None explicit | No pregnancy or diagnosis-based exclusions were applied. |
+
+Age is computed, not read raw, using MIMIC's anchor-year adjustment:
+`DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1), YEAR) + p.anchor_age`
+
+Weight and height are `LEFT JOIN`ed from `mimiciv_3_1_derived.first_day_weight`
+and `first_day_height`, so both may be NULL (weight 1.2%, height 26.7% of the
+extract). `01_build_features.py` substitutes 75 kg and 170 cm respectively.
+
+Cohort sizes: 1,490 patients extracted → 1,489 in the analysis dataset. One
+patient (stay_id 37890382) yields zero prediction instances because only 4 of
+its 254 SAS observations fall inside the 72-hour window.
 
 ---
 

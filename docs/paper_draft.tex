@@ -322,15 +322,23 @@ BigQuery against the physionet-data project.
 
 \subsubsection{Cohort Selection}
 
-The patient cohort for this analysis consisted of adult ICU patients
-who received propofol infusions during their stay and had sufficient
-Sedation Agitation Scale assessments to support our temporal modeling
-approach. Specific inclusion criteria were patient age of at least
-18 years at admission, receipt of at least one propofol infusion event
-during the ICU stay, and at least 11 SAS observations during the stay
-to enable formation of temporal sequences with held out prediction
-targets. \placeholder{Final cohort size: N patients meeting these
-criteria}.
+% CORRECTED 2026-09-02 against the recovered BigQuery SQL. NOTE: this file is
+% SUPERSEDED (old multi-algorithm framing). The correction is applied only so
+% the repository does not carry a false description of cohort construction.
+% The live manuscript is in Overleaf and must be corrected there separately.
+The patient cohort for this analysis was extracted from MIMIC-IV v3.1
+on 12 April 2026. Inclusion required at least 15 Sedation Agitation
+Scale assessments with values in the valid range of 1 to 7, and at
+least 5 propofol infusion events with a positive rate, during the ICU
+stay. No explicit age filter was applied; MIMIC-IV contains only adult
+patients by construction, and the resulting cohort spans ages 18 to 93.
+Age was computed using MIMIC's anchor year de-identification
+adjustment rather than read directly. A separate and weaker modeling
+requirement of at least 11 observations per patient, needed to form
+temporal sequences with held out prediction targets, is enforced
+downstream in the feature building code and never binds. The
+extraction yielded 1,490 patients, of which 1,489 contributed at least
+one prediction instance.
 
 \subsubsection{Variables Extracted}
 

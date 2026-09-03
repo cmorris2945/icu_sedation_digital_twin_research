@@ -225,12 +225,50 @@ In the paper, describe it by criteria to avoid confusing readers.
 ================================================================================
 
 --- COHORT ---
+[CORRECTED 2026-09-02 against the recovered BigQuery SQL. The criteria
+previously recorded here were WRONG and the same wrong criteria are currently
+in the manuscript. See the OPEN ITEMS in Section 9.]
+
 Database                MIMIC-IV v3.1 (PhysioNet credentialed, BigQuery)
-Inclusion               age >= 18 at admission
-                        >= 1 propofol infusion event during ICU stay
+Extraction date         2026-04-12
+BigQuery job IDs        bquxjob_6570a768_19d84255827   (patients)
+                        bquxjob_10b927f2_19d84266954   (propofol infusions)
+                        bquxjob_796d82a8_19d84277e85   (SAS observations)
+itemids                 propofol  222168   (icu.inputevents)
+                        SAS       223753   (icu.chartevents)
+
+REAL extraction filters (what the queries actually applied):
+                        >= 15 SAS observations per stay
+                        >= 5 propofol infusion events per stay
+                        rate > 0 (propofol)
+                        SAS valuenum between 1 and 7
+NO age filter was applied. MIMIC-IV contains adults only by construction, so
+the cohort is de facto adult (verified: min age 18, max 93), but no explicit
+age >= 18 predicate exists in any of the three queries. Do not describe one.
+
+Age is COMPUTED, not raw. The queries use MIMIC's anchor-year adjustment:
+    DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1), YEAR) + p.anchor_age
+This must be stated in Methods; "age at admission" alone does not describe it.
+
+Weight and height come from mimiciv_3_1_derived.first_day_weight and
+first_day_height via LEFT JOIN, so both can be NULL.
+    Verified in the extract: weight NULL for 18/1490 (1.2%),
+    height NULL for 398/1490 (26.7%).
+    01_build_features.py substitutes weight=75 kg and height=170 cm for these.
+    The weight default feeds the PK rate conversion for those 18 patients;
+    the height default is an ML feature only and touches over a quarter of
+    the cohort. Both defaults belong in Methods.
+
+MODELING requirement (separate from, and weaker than, the extraction filter):
                         >= 11 SAS observations
                         (11 = 10 for history sequence + 1 prediction target)
-Final cohort            1,489 patients
+This is enforced in 01_build_features.py, not in SQL. It never binds, because
+the extraction filter already demands 15. Do not present 11 as the cohort
+inclusion criterion; it is a downstream modeling constraint.
+
+Extraction cohort       1,490 patients   (rows in kidney_subgroups_patients.csv)
+Analysis cohort         1,489 patients   (unique stay_id in cached_features.pkl)
+                        ONE patient is lost between the two. See Section 10.
 Prediction instances    30,931
 Train/test split        80/20 at PATIENT level, random_state=42
                         1,191 train patients / 298 test patients
@@ -461,6 +499,20 @@ both the 16-unit ablation and the capacity sweep from the run logs, and recorded
 the sweep commit hash, the machine specs, and the exact installed package
 versions. Recorded, but did not resolve, the src/ script-inventory discrepancy.
 
+--- Sep 2026: SQL recovery pass ---
+The real BigQuery SQL was reviewed and its metadata recorded (extraction date,
+three job IDs, itemids, filter predicates, weight/height join sources). This
+exposed THREE factual errors in the manuscript's Methods, all logged as
+CRITICAL in Section 9: the stated inclusion criterion (>= 11 SAS) is the
+modeling requirement, not the extraction filter (>= 15 SAS and >= 5 propofol
+events); an age >= 18 filter is claimed but was never applied; and the
+anchor-year age computation is undocumented. All three filter claims were
+verified directly against the extract, which shows hard floors at exactly 15
+and exactly 5. Reconstructing the feature build from the raw CSVs also
+established where the 1,490 -> 1,489 patient goes and how much data the
+72-hour simulation window silently discards. The query TEXT is still not in
+the repo; only the metadata was recovered.
+
 ================================================================================
 8. SCRIPT INVENTORY
 ================================================================================
@@ -591,11 +643,68 @@ pip install sklearn fails.
     DECISION NEEDED: standardize both tables on capacity_sweep_results.csv as the
     single source of truth. Then regenerate the ablation table's LSTM column.
 
-[CRITICAL] The real BigQuery SQL was never saved.
-    queries/*.sql contain only TODO stub templates. The actual queries exist only
-    in the BigQuery query history. Without them the cohort cannot be reproduced,
-    which undermines the reproducibility claim in the Data Availability section.
-    MUST be recovered and committed before submission.
+[CRITICAL] Manuscript states the WRONG cohort inclusion criteria.
+    Discovered 2026-09-02 when the real BigQuery SQL was reviewed.
+    Paper currently says:  ">= 11 SAS observations"
+    Queries actually did:  ">= 15 SAS observations AND >= 5 propofol events"
+    Both numbers are real, but they are different things. 11 is the MODELING
+    requirement in 01_build_features.py (10 history + 1 target); 15-and-5 is
+    the EXTRACTION filter in SQL. The paper reports only the 11 and therefore
+    misdescribes how the cohort was built. The 5-propofol-event floor is not
+    mentioned in the paper at all, and it is a real selection criterion that
+    biases the cohort toward sustained infusions.
+    VERIFIED against the extract 2026-09-02: minimum SAS observations per
+    patient is exactly 15 and minimum propofol events is exactly 5, with zero
+    patients below either. These are hard floors, confirming the filters.
+    FIX Methods before submission. State both, and label which is which.
+
+[CRITICAL] Manuscript claims an age >= 18 filter that was never applied.
+    Discovered 2026-09-02. The paper lists "age of at least 18 years at
+    admission" as an inclusion criterion. No such predicate exists in any of
+    the three queries. MIMIC-IV is adult-only by construction, so the cohort
+    IS de facto adult (verified: min 18, max 93), but describing a filter that
+    was not applied is a factual error in Methods.
+    FIX: either drop the claim, or restate it as "MIMIC-IV contains only adult
+    patients by construction; no explicit age filter was applied."
+
+[CRITICAL] Age computation is undocumented in Methods.
+    Age is not a raw column. The queries compute it with MIMIC's anchor-year
+    adjustment:
+        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1), YEAR)
+            + p.anchor_age
+    This is the standard MIMIC de-identification correction and reviewers who
+    know MIMIC will expect to see it stated. Add it to Methods.
+
+[CRITICAL] WHERE THE THREE CORRECTIONS ABOVE HAVE AND HAVE NOT BEEN APPLIED.
+    Corrected in the repository 2026-09-02:
+        docs/transparency_checklist.md   Section 2 cohort table. It had a THIRD
+                                         and different figure, ">= 2 assessments",
+                                         matching neither 11 nor 15.
+        paper/main.tex                   cohort selection paragraph
+        docs/paper_draft.tex             cohort selection paragraph (superseded
+                                         file; corrected so the public repo does
+                                         not carry a false cohort description)
+        queries/extract_propofol_patients.sql  stub header
+        queries/extract_propofol_infusions.sql stub header (provenance added)
+        queries/extract_sas_observations.sql   stub header (provenance added)
+    NOT corrected, and this is the one that matters:
+        THE LIVE MANUSCRIPT IN OVERLEAF. It is outside this repository and
+        cannot be edited from here. The submission draft still contains all
+        three errors. Apply them there before submission; the corrected
+        wording in paper/main.tex can be lifted directly.
+
+[CRITICAL] The real BigQuery SQL is recovered but STILL NOT IN THE REPO.
+    As of 2026-09-02 queries/*.sql remain TODO stub templates. What has been
+    recovered is the query METADATA (job IDs, itemids, filter predicates, join
+    sources) and it is recorded in Section 5. The query TEXT itself has still
+    not been pasted into the files, so the cohort still cannot be reproduced
+    from the repository, and the Data Availability claim is still unsupported.
+    The three BigQuery job IDs in Section 5 are the handle for retrieving the
+    exact text from query history. Do that and commit it.
+    WARNING: the stub header of queries/extract_propofol_patients.sql stated
+    the same two wrong criteria as the manuscript (age >= 18, >= 11 SAS obs).
+    Corrected in place 2026-09-02 so the public repo does not carry the error;
+    the header will be superseded when the real SQL is pasted in.
     Note: queries/README.md also advertises extract_demographics.sql and
     extract_kidney_comorbidities.sql, neither of which exists.
 
@@ -681,9 +790,11 @@ Machine used for the runs (workstation, read 2026-09-02):
     does contain oneDNN CPU messages, so the sweep ran CPU-only. The ~2h48m
     sweep duration is a CPU number; a GPU rerun would not be comparable.
 
+MIMIC-IV extraction date: 2026-04-12  [RESOLVED 2026-09-02]
+    The date the three BigQuery jobs were run. Job IDs in Section 5.
+
 [TODO - STILL UNRESOLVED, DO NOT GUESS]
     IRB / DUA reference number and approval date
-    MIMIC-IV extraction date (the date the BigQuery queries were actually run)
 
 ================================================================================
 10. WHICH RUN PRODUCED THE PAPER'S NUMBERS
@@ -730,6 +841,39 @@ The capacity-moderation headline (10.4/4.5/0.7/0.6%) and the 0.3514 best model:
     This supersedes the earlier note that the run date was unrecorded and that
     file mtimes showed 2026-06-18. The log header is authoritative; mtimes are
     not.
+
+The cohort size 1,489 (and where the missing patient went):
+    [ESTABLISHED 2026-09-02 by reconstructing the build from the raw CSVs;
+    the reconstruction reproduces 30,931 instances exactly.]
+    The SQL extract contains 1,490 patients. The analysis cohort is 1,489.
+    step01.log reports "Processed 1490 patients successfully, 0 skipped" and
+    then "Unique patients in final dataset: 1489", so the loss is silent: the
+    n_failed counter in 01_build_features.py only catches the early-return
+    paths, not a patient who passes them and still yields zero instances.
+    The lost patient is stay_id 37890382. It has 254 SAS observations and 59
+    propofol events, but its observations span 571 hours from the first
+    infusion and only 4 fall inside the 72-hour simulation window, which is
+    fewer than SEQUENCE_LENGTH=10, so no instance could be built.
+    If Methods reports 1,490 -> 1,489, this is the reason. Report it.
+
+The 72-hour simulation window is a large, undocumented attrition step:
+    [QUANTIFIED 2026-09-02 from the raw CSVs.]
+    Of 113,536 extracted SAS observations, measured from each patient's first
+    propofol event:
+        8,919  ( 7.9%)  fall BEFORE the first infusion  -> discarded
+       62,426  (55.0%)  fall AFTER the 72-hour window   -> discarded
+       42,191  (37.2%)  fall inside the window          -> usable
+    603 of 1,489 patients lose more than half their SAS observations this way.
+    sim_duration_hrs=72 is recorded in Section 5 as a solver setting, but it
+    functions as a cohort/observation filter and is not described as one in
+    Methods. A reviewer who divides 113,536 by the reported instance count
+    will ask. Describe the window and its effect.
+
+    Related, and worth a line in Methods or Limitations: when a step of an
+    LSTM Ce history sequence falls outside the window, 01_build_features.py
+    fills it with a literal 0.0 rather than dropping the instance. That is
+    5.4% of all Ce sequence steps (16,784 of 309,310) carrying a fabricated
+    zero drug concentration rather than a simulated one.
 
 The formal trend statistics (Spearman, exponential fit):
     COMPUTED: 2026-06-18, from the verified degradation values in

@@ -28,6 +28,19 @@
 --   others record them as text descriptions like "3-Sedated" that need
 --   to be parsed.
 --
+-- Provenance (recorded 2026-09-02):
+--   Extraction date: 2026-04-12
+--   BigQuery job ID: bquxjob_796d82a8_19d84277e85
+--   itemid: 223753 (SAS) in physionet-data.mimiciv_3_1_icu.chartevents
+--   Filters applied: valuenum between 1 and 7; stays with at least 15 SAS
+--   observations. Verified against the extract: minimum 15 observations per
+--   patient (hard floor), all scores within 1-7, no nulls.
+--
+--   NOTE: the ">= 15 observations" figure is the EXTRACTION filter. The
+--   ">= 11" figure that appears elsewhere in this project is the downstream
+--   MODELING requirement in 01_build_features.py (10 history + 1 target).
+--   They are different things; do not conflate them in the manuscript.
+--
 -- AUTHOR: Christopher Morris
 -- =====================================================================
 --
