@@ -7,7 +7,7 @@
 -- This is the foundation query: it produces kidney_subgroups_patients.csv,
 -- which the other two queries' cohort CTEs reproduce independently.
 --
--- Output columns (as they appear in kidney_subgroups_patients.csv):
+-- Output columns (exactly the column order of kidney_subgroups_patients.csv):
 --   stay_id, gender, age, weight, height,
 --   has_AKI, has_CKD_Stage_1_2, has_CKD_Stage_3, has_CKD_Stage_4,
 --   has_CKD_Stage_5_ESRD, has_CKD_Unspecified, has_Diabetic_Nephropathy,
@@ -27,19 +27,19 @@
 --   01_build_features.py (10 history steps + 1 prediction target); it is not
 --   the extraction filter and it never binds, since 15 is stricter.
 --
--- Age is COMPUTED using MIMIC's anchor-year adjustment, not read raw.
---   Confirmed by the recovered text below:
---     DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0), YEAR)
---       + p.anchor_age
---   (the YEAR unit and the "+ anchor_age" term fall just past the point
---   where the recovered text is cut off; the pattern is unambiguous, but
---   see the TRUNCATION notice below before treating it as verbatim)
+-- Age is COMPUTED using MIMIC's anchor-year adjustment, not read raw:
+--   DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0), YEAR)
+--     + p.anchor_age AS age
+--   This is now verbatim from the recovered query, not inferred. Cite it in
+--   Methods as written.
 --
--- Weight and height are LEFT JOINed from
---   mimiciv_3_1_derived.first_day_weight and first_day_height,
---   so both may be NULL (in the extract: weight 1.2%, height 26.7%).
---   The joins themselves fall past the truncation point and are NOT in the
---   recovered text.
+-- Weight and height are LEFT JOINed from mimiciv_3_1_derived.first_day_weight
+--   and first_day_height on stay_id, so both may be NULL. Unlike the kidney
+--   flags they are NOT wrapped in COALESCE, so the nulls survive into the CSV
+--   (weight 18/1490 = 1.2%, height 398/1490 = 26.7%). 01_build_features.py
+--   substitutes 75 kg and 170 cm for them. Note that this makes the two
+--   missingness patterns behave differently: an absent kidney diagnosis is
+--   indistinguishable from a zero flag, while an absent weight is visible.
 --
 -- Cohort definition (identical CTE block in QUERY 2, 3 and 4):
 --   All three queries rebuild the same "rich_cohort" CTE rather than joining
@@ -48,7 +48,19 @@
 --       HAVING COUNT(*) >= 5    (propofol infusion events per stay)
 --   Any change to a threshold must be made in all three files or the three
 --   CSVs will describe different cohorts. QUERY 2 differs from 3 and 4 only
---   in that its CTEs also project sas_count and propofol_count.
+--   in that its CTEs also project sas_count and propofol_count, neither of
+--   which reaches the output.
+--
+-- KNOWN DEFECTS in the kidney flag logic (Phase 1 only; that analysis is
+-- ABANDONED and no current result depends on these flags). Recorded in
+-- instructions.txt Section 9. Do not reuse the flags without fixing both:
+--   (a) The WHERE clause pulls d.icd_code LIKE 'N19%', but no CASE branch
+--       matches N19, so those rows fall to ELSE NULL and the patient is
+--       recorded as having no kidney disease. Same gap for any N17x code
+--       outside the explicit IN list, since the WHERE uses LIKE 'N17%'.
+--   (b) Kidney flags are hospital-admission level applied to ICU-stay rows:
+--       diagnoses_icd is joined on hadm_id and then grouped by stay_id, so
+--       every ICU stay in an admission inherits that admission's diagnoses.
 --
 -- Provenance:
 --   Extraction date: 2026-04-12
@@ -56,33 +68,14 @@
 --   itemids: propofol 222168 (icu.inputevents), SAS 223753 (icu.chartevents)
 --   Kidney flags derived from hosp.diagnoses_icd, joined on hadm_id.
 --
+--   Verified against kidney_subgroups_patients.csv on 2026-09-02: the final
+--   SELECT's column order matches the CSV header exactly, rows are unique per
+--   stay_id and sorted ascending (matching ORDER BY d.stay_id), all 1,490
+--   rows present, all kidney flags non-null (consistent with COALESCE), and
+--   weight/height nulls survive (consistent with their absence from COALESCE).
+--
 -- AUTHOR: Christopher Morris
 -- =====================================================================
---
--- #####################################################################
--- ## PARTIAL RECOVERY - THIS QUERY IS INCOMPLETE AND WILL NOT RUN.   ##
--- ##                                                                 ##
--- ## Everything below is VERBATIM as supplied on 2026-09-02, but the ##
--- ## supplied text was cut off mid-expression inside the             ##
--- ## `demographics` CTE, at the DATETIME_DIFF call. Nothing has been ##
--- ## invented to complete it.                                        ##
--- ##                                                                 ##
--- ## STILL MISSING, after the truncation point:                      ##
--- ##   - the remainder of the age expression                        ##
--- ##     (YEAR unit argument and "+ p.anchor_age AS age")            ##
--- ##   - gender/weight/height projection details                     ##
--- ##   - the LEFT JOINs to mimiciv_3_1_derived.first_day_weight and  ##
--- ##     first_day_height                                            ##
--- ##   - the FROM/JOIN clauses of the demographics CTE               ##
--- ##   - the final SELECT that assembles demographics with           ##
--- ##     patient_kidney_summary into the output columns              ##
--- ##                                                                 ##
--- ## This is strictly better than the guessed template it replaced   ##
--- ## (which wrongly contained an anchor_age >= 18 filter and a >= 11 ##
--- ## SAS threshold), because every line present here is real. But it ##
--- ## is NOT yet a reproducible query. Retrieve the complete text     ##
--- ## with job ID bquxjob_6570a768_19d84255827 and replace this file. ##
--- #####################################################################
 
 -- QUERY 2: Extract full patient data with kidney subgroup flags
 -- Run this in BigQuery and download as CSV
@@ -185,10 +178,33 @@ demographics AS (
     SELECT
         i.stay_id,
         p.gender,
-        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0),
+        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0), YEAR) + p.anchor_age AS age,
+        w.weight,
+        h.height
+    FROM `physionet-data.mimiciv_3_1_icu.icustays` i
+    INNER JOIN rich_cohort r ON i.stay_id = r.stay_id
+    INNER JOIN `physionet-data.mimiciv_3_1_hosp.patients` p ON i.subject_id = p.subject_id
+    LEFT JOIN `physionet-data.mimiciv_3_1_derived.first_day_weight` w ON i.stay_id = w.stay_id
+    LEFT JOIN `physionet-data.mimiciv_3_1_derived.first_day_height` h ON i.stay_id = h.stay_id
+)
 
--- <<<<<<<<<<<<<<<<<<<< RECOVERED TEXT ENDS HERE >>>>>>>>>>>>>>>>>>>>
--- The supplied text stops mid-call on the line above. See the PARTIAL
--- RECOVERY banner at the top of this file for exactly what is missing.
--- Do not attempt to run this file. Do not cite it as the method until
--- the remainder is recovered.
+SELECT
+    d.stay_id,
+    d.gender,
+    d.age,
+    d.weight,
+    d.height,
+    COALESCE(k.has_AKI, 0) AS has_AKI,
+    COALESCE(k.has_CKD_Stage_1_2, 0) AS has_CKD_Stage_1_2,
+    COALESCE(k.has_CKD_Stage_3, 0) AS has_CKD_Stage_3,
+    COALESCE(k.has_CKD_Stage_4, 0) AS has_CKD_Stage_4,
+    COALESCE(k.has_CKD_Stage_5_ESRD, 0) AS has_CKD_Stage_5_ESRD,
+    COALESCE(k.has_CKD_Unspecified, 0) AS has_CKD_Unspecified,
+    COALESCE(k.has_Diabetic_Nephropathy, 0) AS has_Diabetic_Nephropathy,
+    COALESCE(k.has_Dialysis, 0) AS has_Dialysis,
+    COALESCE(k.has_Hypertensive_Kidney, 0) AS has_Hypertensive_Kidney,
+    COALESCE(k.has_Other_Kidney, 0) AS has_Other_Kidney,
+    COALESCE(k.has_ANY_Kidney, 0) AS has_ANY_Kidney
+FROM demographics d
+LEFT JOIN patient_kidney_summary k ON d.stay_id = k.stay_id
+ORDER BY d.stay_id;
