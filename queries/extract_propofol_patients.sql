@@ -40,12 +40,35 @@
 --   mimiciv_3_1_derived.first_day_weight and first_day_height,
 --   so both may be NULL (in the extract: weight 1.2%, height 26.7%).
 --
+-- Cohort definition (identical CTE block in QUERY 2, 3 and 4):
+--   The three extraction queries each rebuild the same "rich_cohort" CTE
+--   rather than joining against a saved patient table. The thresholds are
+--   HARD-CODED LITERALS, not derived or parameterised:
+--       HAVING COUNT(*) >= 15   (SAS observations per stay)
+--       HAVING COUNT(*) >= 5    (propofol infusion events per stay)
+--   Any change to a threshold must be made in all three files or the
+--   three CSVs will describe different cohorts. The exact CTE text can be
+--   copied from extract_propofol_infusions.sql or
+--   extract_sas_observations.sql, both of which now hold the real query.
+--
 -- Extraction date: 2026-04-12
 -- BigQuery job ID: bquxjob_6570a768_19d84255827
 -- itemids: propofol 222168 (icu.inputevents), SAS 223753 (icu.chartevents)
 --
 -- AUTHOR: Christopher Morris
 -- =====================================================================
+--
+-- ####################################################################
+-- ## STILL A STUB. THIS IS THE ONLY QUERY NOT YET RECOVERED.        ##
+-- ## QUERY 3 and QUERY 4 were pasted in on 2026-09-02; QUERY 2, the ##
+-- ## one that produces kidney_subgroups_patients.csv, was not       ##
+-- ## supplied and is NOT reproduced below. The block that follows   ##
+-- ## is the ORIGINAL GUESSED TEMPLATE and is known to be wrong: it  ##
+-- ## contains an anchor_age >= 18 filter that the real query does   ##
+-- ## not have, and a >= 11 SAS threshold instead of >= 15. Do not   ##
+-- ## run it, cite it, or treat it as the method. Retrieve the real  ##
+-- ## text using job ID bquxjob_6570a768_19d84255827.                ##
+-- ####################################################################
 --
 -- TODO: Paste the actual query from BigQuery history here.
 -- The query should be of approximately this form:

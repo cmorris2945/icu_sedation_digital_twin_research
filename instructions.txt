@@ -105,11 +105,15 @@ Repo root: <local clone path>/icu_sedation_digital_twin_research/
   Also note: src/lib/experiment_tracker.py and src/lib/publication_plots.py are
   imported by nothing in src/. They are currently dead code.
 
-  queries/                       SQL templates ONLY. See GOTCHAS - the real
-                                 queries were never saved.
-    extract_propofol_patients.sql      [STUB - TODO]
-    extract_propofol_infusions.sql     [STUB - TODO]
-    extract_sas_observations.sql       [STUB - TODO]
+  queries/                       2 of 3 hold real query text as of 2026-09-02.
+    extract_propofol_patients.sql      [STUB - TODO] "QUERY 2". NOT RECOVERED.
+                                       Defines demographics, anchor-year age,
+                                       weight/height joins, kidney flags.
+                                       Job ID bquxjob_6570a768_19d84255827.
+                                       File carries a banner warning that the
+                                       template below it is a wrong guess.
+    extract_propofol_infusions.sql     [REAL] "QUERY 3", verbatim as run
+    extract_sas_observations.sql       [REAL] "QUERY 4", verbatim as run
 
   paper/
     main.tex                     [OUTDATED - old framing, superseded by Overleaf]
@@ -242,6 +246,14 @@ REAL extraction filters (what the queries actually applied):
                         >= 5 propofol infusion events per stay
                         rate > 0 (propofol)
                         SAS valuenum between 1 and 7
+                        All four are hard-coded literals, repeated
+                        independently in each of the three queries. Verbatim
+                        text for two of the three is now in queries/; QUERY 2
+                        (patients) is still outstanding. See Section 9.
+                        The >= 15 count spans the WHOLE ICU stay and is eroded
+                        by the downstream 72-hour window: only 1,441 of 1,490
+                        patients still have 15 usable observations. See the
+                        [HIGH] item in Section 9 and Section 11.1.
 NO age filter was applied. MIMIC-IV contains adults only by construction, so
 the cohort is de facto adult (verified: min age 18, max 93), but no explicit
 age >= 18 predicate exists in any of the three queries. Do not describe one.
@@ -521,6 +533,18 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
+--- Sep 2026: QUERY 3 and QUERY 4 pasted into the repo ---
+The verbatim text of the propofol-infusion and SAS extraction queries was
+supplied and committed, closing two thirds of the long-standing "real SQL was
+never saved" item. QUERY 2 (patients) is still missing and remains the blocker
+on full reproducibility. The recovered text settled three things: the >= 15 and
+>= 5 thresholds are hard-coded literals repeated in all three queries rather
+than derived; the COALESCE text-parsing of SAS strings described in the old
+stub header never existed and the real query reads valuenum directly; and no
+query filters on rateuom, which is safe for this extract but not guaranteed.
+It also exposed that the >= 15 SAS filter has no time restriction, so the SQL
+guarantee does not survive the downstream 72-hour window for 49 patients.
+
 --- Sep 2026: data-handling caveats written up ---
 Added Section 11 as the authoritative record of four data-handling facts that
 were previously invisible in every project document and in the manuscript: the
@@ -758,20 +782,65 @@ pip install sklearn fails.
         queries/extract_propofol_infusions.sql stub header (provenance added)
         queries/extract_sas_observations.sql   stub header (provenance added)
 
-[CRITICAL] The real BigQuery SQL is recovered but STILL NOT IN THE REPO.
-    As of 2026-09-02 queries/*.sql remain TODO stub templates. What has been
-    recovered is the query METADATA (job IDs, itemids, filter predicates, join
-    sources) and it is recorded in Section 5. The query TEXT itself has still
-    not been pasted into the files, so the cohort still cannot be reproduced
-    from the repository, and the Data Availability claim is still unsupported.
-    The three BigQuery job IDs in Section 5 are the handle for retrieving the
-    exact text from query history. Do that and commit it.
-    WARNING: the stub header of queries/extract_propofol_patients.sql stated
-    the same two wrong criteria as the manuscript (age >= 18, >= 11 SAS obs).
-    Corrected in place 2026-09-02 so the public repo does not carry the error;
-    the header will be superseded when the real SQL is pasted in.
+[CRITICAL - PARTIALLY CLOSED 2026-09-02] Real BigQuery SQL: 2 of 3 in the repo.
+
+    IN THE REPO, real query text, verbatim as run:
+        queries/extract_propofol_infusions.sql   QUERY 3
+        queries/extract_sas_observations.sql     QUERY 4
+
+    STILL A STUB, still blocking full reproducibility:
+        queries/extract_propofol_patients.sql    QUERY 2
+    QUERY 2 is the one that produces kidney_subgroups_patients.csv, and it is
+    the ONLY place the demographics, the anchor-year age computation, the
+    first_day_weight / first_day_height LEFT JOINs and the kidney comorbidity
+    flags are defined. Until it is recovered the cohort cannot be rebuilt from
+    this repository and the Data Availability statement is not yet supportable.
+    Retrieve it with job ID bquxjob_6570a768_19d84255827.
+    The stub file now carries a loud banner warning that the template block
+    below it is a GUESS and contains the two known-wrong criteria (age >= 18,
+    >= 11 SAS). Do not let that template be mistaken for the method.
+
+    WHAT THE RECOVERED SQL SETTLED:
+    - Thresholds are HARD-CODED LITERALS, not derived or parameterised:
+      HAVING COUNT(*) >= 15 (SAS) and HAVING COUNT(*) >= 5 (propofol).
+      All three queries rebuild the same rich_cohort CTE independently rather
+      than joining a saved cohort table, so a threshold change must be made in
+      three places or the three CSVs will describe different cohorts. Flag as
+      a reproducibility hazard for anyone re-running the extraction.
+    - The COALESCE text-parsing branch never existed. Earlier stub headers
+      described parsing strings like "3-Sedated" via SUBSTR into sas_score.
+      The real QUERY 4 is a plain c.valuenum AS sas_score. The extract being
+      uniformly numeric with no nulls is consistent with this. The header has
+      been corrected; do not cite text parsing in the manuscript.
+    - propofol_patients (DISTINCT stay_id, rate > 0) is logically redundant
+      with propofol_counts (>= 5 such events). Harmless, preserved as run.
+    - Neither query filters on rateuom. 01_build_features.py converts every
+      row as though it were mcg/kg/min. Safe for THIS extract (uniformly
+      mcg/kg/min across all 31,235 rows) but not guaranteed by the query. A
+      mg/kg/hr row in a different MIMIC version would be silently mis-scaled.
+
     Note: queries/README.md also advertises extract_demographics.sql and
-    extract_kidney_comorbidities.sql, neither of which exists.
+    extract_kidney_comorbidities.sql, neither of which exists. QUERY 2 appears
+    to subsume both.
+
+[HIGH] The ">= 15 SAS observations" filter does not mean what it looks like.
+    Established 2026-09-02 once the real SQL was available. The >= 15 count in
+    QUERY 4 has NO time restriction: it counts observations across the entire
+    ICU stay. The 72-hour analysis window is applied downstream in Python. So
+    the SQL guarantee does not survive into the analysis:
+
+        patients with < 15 usable in-window observations:  49  (3.3%)
+        patients with < 11 usable in-window observations:  10  (0.7%)
+        patients with < 10, i.e. below SEQUENCE_LENGTH:     6  (0.4%)
+        median usable vs median extracted per patient:     25 vs 48
+
+    Only 1,441 of 1,490 patients retain the >= 15 guarantee after windowing.
+    Six patients fall below SEQUENCE_LENGTH=10 in-window observations, yet
+    only one produces zero instances (Section 11.3), because history steps are
+    taken by index position and may themselves sit outside the window, which
+    is the same mechanism that produces the zero-fill in Section 11.2.
+    If Methods states ">= 15 SAS observations" without stating the window, it
+    overstates the data actually available per patient. State both.
 
 [DONE 2026-09-02] Merge experiment/lstm-capacity-sweep into main.
     Fast-forwarded main to 2fa4c4c and pushed. See Section 3.

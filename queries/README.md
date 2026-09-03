@@ -40,6 +40,12 @@ This naming history is preserved in this documentation because changing it now w
 
 ## Pending Items
 
-I still need to copy the actual SQL query files into this directory. They currently exist only in my BigQuery query history. The next time I work on this project I will paste each query into its corresponding SQL file in this directory so they are properly preserved as text files that can be version controlled and shared.
+**Updated 2026-09-02.** Two of the three queries now hold their real text, pasted verbatim as run: `extract_propofol_infusions.sql` (QUERY 3) and `extract_sas_observations.sql` (QUERY 4).
+
+One query is still outstanding: `extract_propofol_patients.sql` (QUERY 2), which produces `kidney_subgroups_patients.csv`. It is the only place the demographics, the anchor-year age computation, the `first_day_weight` / `first_day_height` joins and the kidney comorbidity flags are defined, so the cohort still cannot be rebuilt from this repository until it is recovered. It can be retrieved from BigQuery history using job ID `bquxjob_6570a768_19d84255827`. The stub file carries a banner warning that the placeholder template inside it is a guess containing two known-wrong criteria, and must not be run or cited.
+
+Note that the file descriptions above mention `extract_demographics.sql` and `extract_kidney_comorbidities.sql`. Neither file exists; QUERY 2 appears to subsume both. This section should be reconciled once QUERY 2 is recovered.
+
+A caution for anyone re-running the extraction: the `>= 15` SAS and `>= 5` propofol thresholds are hard-coded literals repeated independently inside each query rather than defined once, so changing a threshold means editing all three files or the resulting CSVs will describe different cohorts.
 
 The queries should also include comments inline explaining what each clause does, since reviewers and other researchers may not be familiar with the specific structure of the MIMIC-IV tables. Adding these explanatory comments will be part of the documentation work I do before the paper submission.
