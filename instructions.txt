@@ -296,6 +296,14 @@ Emax      6             maximum drug effect on SAS scale
 Method                  scipy.integrate.odeint
 Time grid               1 minute steps
 Simulation duration     72 hours (sim_duration_hrs=72)
+                        *** NOT ONLY A SOLVER SETTING. ***
+                        sim_duration_hrs=72 is cohort-defining: it silently
+                        determines which observations become usable data and
+                        which patients survive into the analysis at all. It
+                        discards 62.9% of extracted SAS observations and drops
+                        one patient entirely. Treat it as an inclusion
+                        criterion and report it as one. Full numbers in
+                        Section 11.
 Initial conditions      all compartments = 0
 mxstep                  5000
 
@@ -513,6 +521,17 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
+--- Sep 2026: data-handling caveats written up ---
+Added Section 11 as the authoritative record of four data-handling facts that
+were previously invisible in every project document and in the manuscript: the
+72-hour window as an observation filter (62.9% of extracted SAS observations
+discarded, 603 of 1,489 patients losing over half), the 5.4% zero-fill
+imputation in the Ce sequences, the silent 1,490 -> 1,489 patient drop, and
+the weight/height default substitution rates. Section 10 now points at Section
+11 rather than repeating it. Turned the Overleaf item into an explicit
+pre-submission checklist covering Methods and Limitations, since the shipping
+manuscript is outside this repository.
+
 ================================================================================
 8. SCRIPT INVENTORY
 ================================================================================
@@ -675,8 +694,59 @@ pip install sklearn fails.
     This is the standard MIMIC de-identification correction and reviewers who
     know MIMIC will expect to see it stated. Add it to Methods.
 
-[CRITICAL] WHERE THE THREE CORRECTIONS ABOVE HAVE AND HAVE NOT BEEN APPLIED.
-    Corrected in the repository 2026-09-02:
+[CRITICAL] OVERLEAF SUBMISSION CHECKLIST. The manuscript that ships is in
+    Overleaf, outside this repository, and CANNOT be edited from here. Nothing
+    below has been applied to it. Everything below has been applied to the
+    in-repo copies, so the corrected wording can be lifted verbatim rather than
+    rewritten.
+
+    SOURCE OF CORRECTED WORDING:
+        paper/main.tex line 185 (comment block starts at line 181) is the
+        full corrected cohort-selection paragraph: criteria, the absent age
+        filter, the anchor-year age computation, and the weight/height
+        defaults with their rates. Copy it directly into Overleaf.
+
+    METHODS - must change:
+    [ ] Inclusion criteria: state ">= 15 SAS observations AND >= 5 propofol
+        infusion events with rate > 0", NOT ">= 11 SAS observations".
+        The >= 5 propofol-event floor is currently absent from the manuscript
+        entirely and is a real selection effect toward sustained infusions.
+    [ ] Present ">= 11 SAS observations" separately and explicitly as the
+        downstream MODELING requirement (10 history steps + 1 target) enforced
+        in 01_build_features.py, noting it never binds because 15 is stricter.
+        Do not present it as a cohort criterion.
+    [ ] Add the 72-hour observation window as a STATED inclusion criterion.
+        It is currently described nowhere. Observations are indexed from each
+        patient's first propofol event and anything outside [0, 72] hours is
+        dropped. See Section 11.1 for the retention table.
+    [ ] Remove or qualify the "age >= 18 at admission" claim. No such filter
+        exists in any query. Replace with: MIMIC-IV contains only adult
+        patients by construction; no explicit age filter was applied;
+        observed range 18-93.
+    [ ] State that age is computed via MIMIC's anchor-year adjustment
+        (DATETIME_DIFF(intime, DATETIME(anchor_year,1,1), YEAR) + anchor_age),
+        not read as a raw column.
+    [ ] State the weight and height sources (first_day_weight,
+        first_day_height, LEFT JOIN) and the substituted defaults (75 kg,
+        170 cm).
+    [ ] Report the attrition chain honestly: 1,490 extracted -> 1,489 in the
+        analysis dataset -> 30,931 prediction instances. Section 11.3 has the
+        reason for the single dropped patient.
+
+    LIMITATIONS - must add:
+    [ ] Zero-fill imputation: 5.4% of LSTM Ce sequence steps (16,784 of
+        309,310) are a fabricated 0.0 rather than a simulated concentration,
+        because the history step fell outside the window. 0.0 is not neutral;
+        it reads as "no drug on board". Section 11.2.
+    [ ] 72-hour truncation: 62.9% of extracted SAS observations are discarded
+        (55.0% after the window, 7.9% before the first infusion), and 603 of
+        1,489 patients lose more than half their observations. Section 11.1.
+    [ ] Height default: 26.7% of the cohort carries an identical constant
+        170 cm in a feature the models may use, making "height" partly an
+        indicator of missingness. Section 11.4.
+
+    ALREADY CORRECTED IN THE REPOSITORY 2026-09-02 (for reference only; these
+    are done, and are listed so nobody redoes them):
         docs/transparency_checklist.md   Section 2 cohort table. It had a THIRD
                                          and different figure, ">= 2 assessments",
                                          matching neither 11 nor 15.
@@ -687,11 +757,6 @@ pip install sklearn fails.
         queries/extract_propofol_patients.sql  stub header
         queries/extract_propofol_infusions.sql stub header (provenance added)
         queries/extract_sas_observations.sql   stub header (provenance added)
-    NOT corrected, and this is the one that matters:
-        THE LIVE MANUSCRIPT IN OVERLEAF. It is outside this repository and
-        cannot be edited from here. The submission draft still contains all
-        three errors. Apply them there before submission; the corrected
-        wording in paper/main.tex can be lifted directly.
 
 [CRITICAL] The real BigQuery SQL is recovered but STILL NOT IN THE REPO.
     As of 2026-09-02 queries/*.sql remain TODO stub templates. What has been
@@ -842,38 +907,18 @@ The capacity-moderation headline (10.4/4.5/0.7/0.6%) and the 0.3514 best model:
     file mtimes showed 2026-06-18. The log header is authoritative; mtimes are
     not.
 
-The cohort size 1,489 (and where the missing patient went):
-    [ESTABLISHED 2026-09-02 by reconstructing the build from the raw CSVs;
-    the reconstruction reproduces 30,931 instances exactly.]
-    The SQL extract contains 1,490 patients. The analysis cohort is 1,489.
-    step01.log reports "Processed 1490 patients successfully, 0 skipped" and
-    then "Unique patients in final dataset: 1489", so the loss is silent: the
-    n_failed counter in 01_build_features.py only catches the early-return
-    paths, not a patient who passes them and still yields zero instances.
-    The lost patient is stay_id 37890382. It has 254 SAS observations and 59
-    propofol events, but its observations span 571 hours from the first
-    infusion and only 4 fall inside the 72-hour simulation window, which is
-    fewer than SEQUENCE_LENGTH=10, so no instance could be built.
-    If Methods reports 1,490 -> 1,489, this is the reason. Report it.
-
-The 72-hour simulation window is a large, undocumented attrition step:
-    [QUANTIFIED 2026-09-02 from the raw CSVs.]
-    Of 113,536 extracted SAS observations, measured from each patient's first
-    propofol event:
-        8,919  ( 7.9%)  fall BEFORE the first infusion  -> discarded
-       62,426  (55.0%)  fall AFTER the 72-hour window   -> discarded
-       42,191  (37.2%)  fall inside the window          -> usable
-    603 of 1,489 patients lose more than half their SAS observations this way.
-    sim_duration_hrs=72 is recorded in Section 5 as a solver setting, but it
-    functions as a cohort/observation filter and is not described as one in
-    Methods. A reviewer who divides 113,536 by the reported instance count
-    will ask. Describe the window and its effect.
-
-    Related, and worth a line in Methods or Limitations: when a step of an
-    LSTM Ce history sequence falls outside the window, 01_build_features.py
-    fills it with a literal 0.0 rather than dropping the instance. That is
-    5.4% of all Ce sequence steps (16,784 of 309,310) carrying a fabricated
-    zero drug concentration rather than a simulated one.
+The cohort numbers 1,490 / 1,489 / 30,931:
+    ESTABLISHED 2026-09-02 by reconstructing the feature build from the raw
+    CSVs in data/. The reconstruction reproduces 30,931 instances and the
+    single dropped patient exactly, so the chain is verified end to end:
+        1,490 patients in the SQL extract
+        1,489 patients in cached_features.pkl
+       30,931 prediction instances
+    The one-patient loss is silent in step01.log and is caused by the 72-hour
+    window, not by any SQL filter. Full explanation, the patient's stay_id,
+    and the observation-retention breakdown are in SECTION 11, which is the
+    authoritative record for all of it. Do not duplicate those numbers here;
+    update Section 11 and point at it.
 
 The formal trend statistics (Spearman, exponential fit):
     COMPUTED: 2026-06-18, from the verified degradation values in
@@ -888,6 +933,120 @@ answerable from this file alone, for both the ablation and the sweep.
 REMAINING RISK: the per-run provenance chain depends on the step*.log files
 staying committed alongside the CSVs. Do not delete them as clutter. They are
 the only record of when the runs happened.
+
+================================================================================
+11. KNOWN LIMITATIONS AND DATA-HANDLING CAVEATS
+================================================================================
+
+All figures in this section were established 2026-09-02 by reconstructing the
+feature build from the raw CSVs. The reconstruction reproduces 30,931 instances
+and the single dropped patient exactly, so these numbers are load-bearing and
+can be quoted in the manuscript.
+
+Every item here is invisible in the current manuscript. Each one is the kind of
+thing a reviewer finds by dividing two numbers in the paper. Better to state
+them than to be asked.
+
+--- 11.1 THE 72-HOUR WINDOW IS AN OBSERVATION FILTER ---
+
+sim_duration_hrs=72 is recorded in Section 5 as an ODE solver setting. It is
+not only that. Every SAS observation is indexed relative to the patient's FIRST
+propofol infusion event, and anything outside [0, 72] hours is dropped. Of
+113,536 extracted SAS observations:
+
+    disposition                      count      share
+    before the first infusion        8,919       7.9%   discarded
+    after the 72-hour window        62,426      55.0%   discarded
+    inside the window               42,191      37.2%   usable
+
+    Total discarded: 71,345 observations, 62.9% of everything extracted.
+
+603 of 1,489 patients lose MORE THAN HALF of their SAS observations this way.
+
+This is a cohort-defining filter. It determines both which observations become
+prediction instances and, in at least one case, which patients exist in the
+analysis at all. It should appear in Methods as an inclusion criterion
+alongside the SQL filters, not buried in a solver-settings table.
+
+Note also the asymmetry: the window is anchored to the first propofol event,
+not to ICU admission. A patient sedated late in a long stay has their whole
+pre-sedation history discarded by the 7.9% bucket, which is intended, but a
+patient on a long or intermittent sedation course loses the tail, which is a
+selection effect toward early-stay observations. Say so.
+
+--- 11.2 ZERO-FILL IMPUTATION IN THE Ce SEQUENCES ---
+
+When a step of an LSTM Ce history sequence falls outside the 72-hour window,
+01_build_features.py does NOT drop the instance. It appends a literal 0.0:
+
+    ce_history.append(0)   # else-branch of the window check
+
+That is a fabricated zero drug concentration presented to the model as if it
+were a simulated one, and 0.0 is not a neutral filler here: it is a physically
+meaningful value meaning "no drug on board".
+
+    16,784 of 309,310 Ce sequence steps = 5.4% are fabricated zeros.
+
+The target observation is always inside the window; only history steps can be
+zero-filled. The affected instances are concentrated at the start of each
+patient's usable range. Record as a known limitation. If a reviewer asks
+whether the LSTM's temporal mechanistic signal is real, this is the first
+thing they will point at, because a spurious zero is exactly the kind of
+artifact a recurrent model can latch onto.
+
+The clean fix, if it is ever worth rerunning: drop instances whose history is
+not fully inside the window, or mask those steps rather than zero-filling.
+That would cost some instances and require regenerating everything downstream,
+so it is a decision, not an obvious correction.
+
+--- 11.3 THE SILENT 1,490 -> 1,489 PATIENT DROP ---
+
+The SQL extract contains 1,490 patients. The analysis cohort is 1,489.
+
+step01.log reports "Processed 1490 patients successfully, 0 skipped" and then
+"Unique patients in final dataset: 1489". Both lines are correct and they
+contradict each other in appearance only: the n_failed counter in
+01_build_features.py increments only on the early-return paths (too few SAS
+observations, no propofol events, failed simulation). A patient can pass all
+of those and still produce zero instances inside the per-observation loop,
+where the window check is a bare `continue`. Nothing counts that.
+
+The lost patient is stay_id 37890382:
+    254 SAS observations, 59 propofol events (passes every gate)
+    observations span -4.7 h to +571.3 h from the first infusion
+    only 4 of the 254 fall inside the 0-72 h window
+    4 < SEQUENCE_LENGTH (10), so no prediction instance can be formed
+
+If Methods reports an attrition chain, this is the final step and this is the
+reason. The counter should also be fixed so the next run does not hide it.
+
+--- 11.4 WEIGHT AND HEIGHT DEFAULTS ---
+
+Weight and height are LEFT JOINed from mimiciv_3_1_derived.first_day_weight
+and first_day_height, so both can be NULL. 01_build_features.py substitutes
+fixed population values rather than dropping or modelling the missingness:
+
+    field    missing in extract      substituted value    consequence
+    weight   18 / 1490  ( 1.2%)      75 kg                feeds the PK rate
+                                                          conversion
+                                                          (mcg/kg/min -> mg/min)
+                                                          for those patients,
+                                                          so their entire
+                                                          simulated exposure is
+                                                          wrong if the true
+                                                          weight was atypical
+    height   398 / 1490 (26.7%)      170 cm               ML clinical feature
+                                                          only; not used by the
+                                                          Eleveld simulation
+
+The height rate is the one to disclose. Over a quarter of the cohort carries an
+identical constant in a feature the models are free to use, which makes
+"height" partly an indicator of missingness rather than a measurement. The
+weight default is rarer but more consequential per patient, because it
+propagates through the PK simulation rather than sitting in a feature vector.
+
+Neither default is mentioned in the manuscript. Both belong in Methods, and the
+height figure belongs in Limitations.
 
 ================================================================================
 END
