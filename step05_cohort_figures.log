@@ -1,0 +1,82 @@
+======================================================================
+COHORT FIGURES AND PER-PATIENT ERROR ANALYSIS
+======================================================================
+Started at: 2026-09-03 00:17:21
+
+Loading data...
+   instance level : 30,931 rows, 1,489 patients
+   extraction CSV : 1,490 patients
+   analysis cohort: 1,489 patients
+   height missing : 398 (26.7%) -> excluded from height/BMI
+   weight missing : 18 (1.2%) -> excluded from weight/BMI
+   BMI computable : 1,089 patients (73.1%)
+   DATA QUALITY: 5 patients have weight outside 30-250 kg (min 7.4, max 345.0). Retained as recorded, not winsorised.
+   DATA QUALITY: 8 patients have bmi outside 12-70 kg/m2 (min 9.6, max 108.9). Retained as recorded, not winsorised.
+   comorbidity flags found: 11
+
+Building cohort_table1.csv...
+   wrote cohort_table1.csv (22 rows)
+
+Generating distribution figures...
+   EC50 at lower bound: 774 (52.0%), upper bound: 45 (3.0%)
+   Saved figures\cohort\cohort_distributions.png
+   Saved figures\cohort\cohort_distributions.pdf
+   Saved figures\cohort\cohort_sex_comorbidity.png
+   Saved figures\cohort\cohort_sex_comorbidity.pdf
+
+Reusing cached per-patient errors from cohort_per_patient_mae.csv (--force to retrain).
+
+Sanity check against the published capacity sweep:
+   skipped, per-patient errors came from cache.
+   patient-weighted mean of per-patient MAE = 0.3395
+   (differs from the instance-weighted figure because patients contribute unequal instance counts; both are correct, they answer different questions)
+
+Naive baselines on the identical test split...
+   test set: 6,409 instances, 298 patients
+   SAS unchanged from previous observation in 78.3% of test instances
+   persistence (predict sas_last)   MAE = 0.2866
+   window mean (predict sas_mean)   MAE = 0.4699
+   global train mean                MAE = 0.7316
+   4-unit FULL_HYBRID (published)   MAE = 0.3514
+   paired over 298 test patients: model 0.3395 vs persistence 0.2769, Wilcoxon p = 9.41e-19
+   the model beats persistence for 72/298 patients (24.2%)
+   *** PERSISTENCE OUTPERFORMS THE BEST MODEL IN THE CAPACITY SWEEP. ***
+   *** This baseline must appear in the manuscript. See              ***
+   *** instructions.txt Section 9.                                   ***
+   wrote cohort_baseline_comparison.csv
+
+Computing correlations...
+   per-patient MAE available for 298 test patients
+   EC50 strictly interior for 670 of 1489 patients (45.0%)
+   wrote cohort_correlations.csv (10 rows)
+
+              y                     x             subset    n  pearson_r  pearson_p  spearman_rho  spearman_p
+Per-patient MAE           Age (years)      test patients  298    -0.1379    0.01723       -0.1466     0.01127
+Per-patient MAE           Weight (kg)      test patients  294     0.0213    0.71550        0.0122     0.83520
+Per-patient MAE           BMI (kg/m2)      test patients  211    -0.0525    0.44817       -0.0300     0.66474
+Per-patient MAE Instances per patient      test patients  298     0.0784    0.17696        0.2178     0.00015
+Calibrated EC50           Age (years)       all patients 1489    -0.1087    0.00003       -0.2772     0.00000
+Calibrated EC50           Age (years) EC50 interior only  670    -0.2828    0.00000       -0.3298     0.00000
+Calibrated EC50           Weight (kg)       all patients 1471     0.0716    0.00598        0.2110     0.00000
+Calibrated EC50           Weight (kg) EC50 interior only  660     0.2481    0.00000        0.2357     0.00000
+Calibrated EC50           BMI (kg/m2)       all patients 1089     0.0436    0.15012        0.1548     0.00000
+Calibrated EC50           BMI (kg/m2) EC50 interior only  446     0.2114    0.00001        0.1687     0.00034
+
+Generating scatter figures...
+   Saved figures\cohort\cohort_mae_scatter.png
+   Saved figures\cohort\cohort_mae_scatter.pdf
+   Saved figures\cohort\cohort_ec50_scatter.png
+   Saved figures\cohort\cohort_ec50_scatter.pdf
+
+======================================================================
+Files generated:
+   cohort_table1.csv
+   cohort_correlations.csv
+   cohort_per_patient_mae.csv
+   figures\cohort/cohort_distributions.png/.pdf
+   figures\cohort/cohort_sex_comorbidity.png/.pdf
+   figures\cohort/cohort_mae_scatter.png/.pdf
+   figures\cohort/cohort_ec50_scatter.png/.pdf
+
+Finished at: 2026-09-03 00:17:26
+EXIT_CODE: 0
