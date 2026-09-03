@@ -1,23 +1,17 @@
 -- =====================================================================
--- extract_propofol_patients.sql
+-- extract_propofol_patients.sql         (BigQuery history: "QUERY 2")
 -- =====================================================================
 --
 -- Purpose: Identify the patient cohort for our ICU sedation digital twin
--- analysis. This query selects adult patients who received propofol during
--- their ICU stay and had at least the minimum number of Sedation-Agitation
--- Scale assessments needed for our temporal modeling approach.
+-- analysis and attach demographics plus the legacy kidney comorbidity flags.
+-- This is the foundation query: it produces kidney_subgroups_patients.csv,
+-- which the other two queries' cohort CTEs reproduce independently.
 --
--- This is the foundation query for our analysis. All other queries in this
--- directory join against the patient list this query produces.
---
--- Output columns:
---   stay_id: ICU stay identifier (links to other tables)
---   gender: M or F
---   age: patient age at admission
---   weight: patient weight in kg (may be NULL if not recorded)
---   height: patient height in cm (may be NULL if not recorded)
---   has_AKI through has_ANY_Kidney: comorbidity flags (legacy from earlier
---                                    kidney disease analysis, can be ignored)
+-- Output columns (as they appear in kidney_subgroups_patients.csv):
+--   stay_id, gender, age, weight, height,
+--   has_AKI, has_CKD_Stage_1_2, has_CKD_Stage_3, has_CKD_Stage_4,
+--   has_CKD_Stage_5_ESRD, has_CKD_Unspecified, has_Diabetic_Nephropathy,
+--   has_Dialysis, has_Hypertensive_Kidney, has_Other_Kidney, has_ANY_Kidney
 --
 -- Inclusion criteria (CORRECTED 2026-09-02 against the recovered query):
 --   - At least 15 SAS observations during the ICU stay
@@ -33,66 +27,168 @@
 --   01_build_features.py (10 history steps + 1 prediction target); it is not
 --   the extraction filter and it never binds, since 15 is stricter.
 --
--- Age is COMPUTED using MIMIC's anchor-year adjustment, not read raw:
---   DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1), YEAR) + p.anchor_age
+-- Age is COMPUTED using MIMIC's anchor-year adjustment, not read raw.
+--   Confirmed by the recovered text below:
+--     DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0), YEAR)
+--       + p.anchor_age
+--   (the YEAR unit and the "+ anchor_age" term fall just past the point
+--   where the recovered text is cut off; the pattern is unambiguous, but
+--   see the TRUNCATION notice below before treating it as verbatim)
 --
 -- Weight and height are LEFT JOINed from
 --   mimiciv_3_1_derived.first_day_weight and first_day_height,
 --   so both may be NULL (in the extract: weight 1.2%, height 26.7%).
+--   The joins themselves fall past the truncation point and are NOT in the
+--   recovered text.
 --
 -- Cohort definition (identical CTE block in QUERY 2, 3 and 4):
---   The three extraction queries each rebuild the same "rich_cohort" CTE
---   rather than joining against a saved patient table. The thresholds are
---   HARD-CODED LITERALS, not derived or parameterised:
+--   All three queries rebuild the same "rich_cohort" CTE rather than joining
+--   against a saved patient table. The thresholds are HARD-CODED LITERALS:
 --       HAVING COUNT(*) >= 15   (SAS observations per stay)
 --       HAVING COUNT(*) >= 5    (propofol infusion events per stay)
---   Any change to a threshold must be made in all three files or the
---   three CSVs will describe different cohorts. The exact CTE text can be
---   copied from extract_propofol_infusions.sql or
---   extract_sas_observations.sql, both of which now hold the real query.
+--   Any change to a threshold must be made in all three files or the three
+--   CSVs will describe different cohorts. QUERY 2 differs from 3 and 4 only
+--   in that its CTEs also project sas_count and propofol_count.
 --
--- Extraction date: 2026-04-12
--- BigQuery job ID: bquxjob_6570a768_19d84255827
--- itemids: propofol 222168 (icu.inputevents), SAS 223753 (icu.chartevents)
+-- Provenance:
+--   Extraction date: 2026-04-12
+--   BigQuery job ID: bquxjob_6570a768_19d84255827
+--   itemids: propofol 222168 (icu.inputevents), SAS 223753 (icu.chartevents)
+--   Kidney flags derived from hosp.diagnoses_icd, joined on hadm_id.
 --
 -- AUTHOR: Christopher Morris
 -- =====================================================================
 --
--- ####################################################################
--- ## STILL A STUB. THIS IS THE ONLY QUERY NOT YET RECOVERED.        ##
--- ## QUERY 3 and QUERY 4 were pasted in on 2026-09-02; QUERY 2, the ##
--- ## one that produces kidney_subgroups_patients.csv, was not       ##
--- ## supplied and is NOT reproduced below. The block that follows   ##
--- ## is the ORIGINAL GUESSED TEMPLATE and is known to be wrong: it  ##
--- ## contains an anchor_age >= 18 filter that the real query does   ##
--- ## not have, and a >= 11 SAS threshold instead of >= 15. Do not   ##
--- ## run it, cite it, or treat it as the method. Retrieve the real  ##
--- ## text using job ID bquxjob_6570a768_19d84255827.                ##
--- ####################################################################
---
--- TODO: Paste the actual query from BigQuery history here.
--- The query should be of approximately this form:
---
--- WITH propofol_recipients AS (
---   SELECT DISTINCT stay_id
---   FROM `physionet-data.mimiciv_3_1_icu.inputevents`
---   WHERE itemid IN (...) -- propofol-specific item IDs
--- ),
--- adult_icu_stays AS (
---   SELECT s.stay_id, p.gender, ...
---   FROM `physionet-data.mimiciv_3_1_icu.icustays` s
---   JOIN `physionet-data.mimiciv_3_1_hosp.patients` p USING (subject_id)
---   WHERE p.anchor_age >= 18
--- ),
--- sas_counts AS (
---   SELECT stay_id, COUNT(*) as n_sas
---   FROM `physionet-data.mimiciv_3_1_icu.chartevents`
---   WHERE itemid IN (...) -- SAS-specific item IDs
---   GROUP BY stay_id
---   HAVING n_sas >= 11
--- )
--- SELECT s.stay_id, s.gender, s.age, s.weight, s.height,
---        kidney comorbidity flags here
--- FROM adult_icu_stays s
--- JOIN propofol_recipients p USING (stay_id)
--- JOIN sas_counts c USING (stay_id);
+-- #####################################################################
+-- ## PARTIAL RECOVERY - THIS QUERY IS INCOMPLETE AND WILL NOT RUN.   ##
+-- ##                                                                 ##
+-- ## Everything below is VERBATIM as supplied on 2026-09-02, but the ##
+-- ## supplied text was cut off mid-expression inside the             ##
+-- ## `demographics` CTE, at the DATETIME_DIFF call. Nothing has been ##
+-- ## invented to complete it.                                        ##
+-- ##                                                                 ##
+-- ## STILL MISSING, after the truncation point:                      ##
+-- ##   - the remainder of the age expression                        ##
+-- ##     (YEAR unit argument and "+ p.anchor_age AS age")            ##
+-- ##   - gender/weight/height projection details                     ##
+-- ##   - the LEFT JOINs to mimiciv_3_1_derived.first_day_weight and  ##
+-- ##     first_day_height                                            ##
+-- ##   - the FROM/JOIN clauses of the demographics CTE               ##
+-- ##   - the final SELECT that assembles demographics with           ##
+-- ##     patient_kidney_summary into the output columns              ##
+-- ##                                                                 ##
+-- ## This is strictly better than the guessed template it replaced   ##
+-- ## (which wrongly contained an anchor_age >= 18 filter and a >= 11 ##
+-- ## SAS threshold), because every line present here is real. But it ##
+-- ## is NOT yet a reproducible query. Retrieve the complete text     ##
+-- ## with job ID bquxjob_6570a768_19d84255827 and replace this file. ##
+-- #####################################################################
+
+-- QUERY 2: Extract full patient data with kidney subgroup flags
+-- Run this in BigQuery and download as CSV
+
+WITH propofol_patients AS (
+    SELECT DISTINCT stay_id
+    FROM `physionet-data.mimiciv_3_1_icu.inputevents`
+    WHERE itemid = 222168
+    AND rate > 0
+),
+
+sas_patients AS (
+    SELECT
+        stay_id,
+        COUNT(*) AS sas_count
+    FROM `physionet-data.mimiciv_3_1_icu.chartevents`
+    WHERE itemid = 223753
+    AND valuenum BETWEEN 1 AND 7
+    GROUP BY stay_id
+    HAVING COUNT(*) >= 15  -- At least 15 SAS observations
+),
+
+propofol_counts AS (
+    SELECT
+        stay_id,
+        COUNT(*) AS propofol_count
+    FROM `physionet-data.mimiciv_3_1_icu.inputevents`
+    WHERE itemid = 222168
+    AND rate > 0
+    GROUP BY stay_id
+    HAVING COUNT(*) >= 5  -- At least 5 propofol events
+),
+
+-- Rich data cohort
+rich_cohort AS (
+    SELECT p.stay_id
+    FROM propofol_patients p
+    INNER JOIN sas_patients s ON p.stay_id = s.stay_id
+    INNER JOIN propofol_counts pc ON p.stay_id = pc.stay_id
+),
+
+stay_info AS (
+    SELECT i.stay_id, i.hadm_id, i.subject_id
+    FROM `physionet-data.mimiciv_3_1_icu.icustays` i
+    INNER JOIN rich_cohort r ON i.stay_id = r.stay_id
+),
+
+-- Categorize kidney diagnoses
+kidney_diagnoses AS (
+    SELECT
+        s.stay_id,
+        d.icd_code,
+        CASE
+            WHEN d.icd_code IN ('N170', 'N171', 'N172', 'N178', 'N179') THEN 'AKI'
+            WHEN d.icd_code LIKE '584%' THEN 'AKI'
+            WHEN d.icd_code IN ('N181', 'N182', '5851', '5852') THEN 'CKD_Stage_1_2'
+            WHEN d.icd_code IN ('N183', 'N1830', 'N1831', 'N1832', '5853') THEN 'CKD_Stage_3'
+            WHEN d.icd_code IN ('N184', '5854') THEN 'CKD_Stage_4'
+            WHEN d.icd_code IN ('N185', 'N186', '5855', '5856') THEN 'CKD_Stage_5_ESRD'
+            WHEN d.icd_code IN ('N189', 'N18', 'N188', '5859') THEN 'CKD_Unspecified'
+            WHEN d.icd_code LIKE 'E102%' OR d.icd_code LIKE 'E112%' OR d.icd_code LIKE '2504%' THEN 'Diabetic_Nephropathy'
+            WHEN d.icd_code = 'Z992' OR d.icd_code LIKE 'V451%' THEN 'Dialysis'
+            WHEN d.icd_code LIKE 'I12%' OR d.icd_code LIKE 'I13%' OR d.icd_code LIKE '403%' OR d.icd_code LIKE '404%' THEN 'Hypertensive_Kidney'
+            WHEN d.icd_code LIKE 'N0%' OR d.icd_code LIKE '58%' THEN 'Other_Kidney'
+            ELSE NULL
+        END AS kidney_category
+    FROM stay_info s
+    INNER JOIN `physionet-data.mimiciv_3_1_hosp.diagnoses_icd` d ON s.hadm_id = d.hadm_id
+    WHERE
+        d.icd_code LIKE 'N17%' OR d.icd_code LIKE 'N18%' OR d.icd_code LIKE 'N19%'
+        OR d.icd_code LIKE 'E102%' OR d.icd_code LIKE 'E112%'
+        OR d.icd_code = 'Z992' OR d.icd_code LIKE 'I12%' OR d.icd_code LIKE 'I13%'
+        OR d.icd_code LIKE 'N0%'
+        OR d.icd_code LIKE '584%' OR d.icd_code LIKE '585%' OR d.icd_code LIKE '586%'
+        OR d.icd_code LIKE '2504%' OR d.icd_code LIKE 'V451%'
+        OR d.icd_code LIKE '403%' OR d.icd_code LIKE '404%'
+        OR d.icd_code LIKE '580%' OR d.icd_code LIKE '581%' OR d.icd_code LIKE '582%' OR d.icd_code LIKE '583%'
+),
+
+patient_kidney_summary AS (
+    SELECT
+        stay_id,
+        MAX(CASE WHEN kidney_category = 'AKI' THEN 1 ELSE 0 END) AS has_AKI,
+        MAX(CASE WHEN kidney_category = 'CKD_Stage_1_2' THEN 1 ELSE 0 END) AS has_CKD_Stage_1_2,
+        MAX(CASE WHEN kidney_category = 'CKD_Stage_3' THEN 1 ELSE 0 END) AS has_CKD_Stage_3,
+        MAX(CASE WHEN kidney_category = 'CKD_Stage_4' THEN 1 ELSE 0 END) AS has_CKD_Stage_4,
+        MAX(CASE WHEN kidney_category = 'CKD_Stage_5_ESRD' THEN 1 ELSE 0 END) AS has_CKD_Stage_5_ESRD,
+        MAX(CASE WHEN kidney_category = 'CKD_Unspecified' THEN 1 ELSE 0 END) AS has_CKD_Unspecified,
+        MAX(CASE WHEN kidney_category = 'Diabetic_Nephropathy' THEN 1 ELSE 0 END) AS has_Diabetic_Nephropathy,
+        MAX(CASE WHEN kidney_category = 'Dialysis' THEN 1 ELSE 0 END) AS has_Dialysis,
+        MAX(CASE WHEN kidney_category = 'Hypertensive_Kidney' THEN 1 ELSE 0 END) AS has_Hypertensive_Kidney,
+        MAX(CASE WHEN kidney_category = 'Other_Kidney' THEN 1 ELSE 0 END) AS has_Other_Kidney,
+        MAX(CASE WHEN kidney_category IS NOT NULL THEN 1 ELSE 0 END) AS has_ANY_Kidney
+    FROM kidney_diagnoses
+    GROUP BY stay_id
+),
+
+-- Demographics
+demographics AS (
+    SELECT
+        i.stay_id,
+        p.gender,
+        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0),
+
+-- <<<<<<<<<<<<<<<<<<<< RECOVERED TEXT ENDS HERE >>>>>>>>>>>>>>>>>>>>
+-- The supplied text stops mid-call on the line above. See the PARTIAL
+-- RECOVERY banner at the top of this file for exactly what is missing.
+-- Do not attempt to run this file. Do not cite it as the method until
+-- the remainder is recovered.
