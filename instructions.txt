@@ -105,15 +105,23 @@ Repo root: <local clone path>/icu_sedation_digital_twin_research/
   Also note: src/lib/experiment_tracker.py and src/lib/publication_plots.py are
   imported by nothing in src/. They are currently dead code.
 
-  queries/                       2 of 3 hold real query text as of 2026-09-02.
-    extract_propofol_patients.sql      [STUB - TODO] "QUERY 2". NOT RECOVERED.
-                                       Defines demographics, anchor-year age,
-                                       weight/height joins, kidney flags.
+  queries/                       As of 2026-09-02: 2 complete, 1 partial.
+                                 All text present is verbatim as run. Nothing
+                                 has been invented to fill gaps.
+    extract_propofol_patients.sql      [PARTIAL] "QUERY 2". Real text, but
+                                       TRUNCATED mid-expression inside the
+                                       demographics CTE. Holds the cohort
+                                       CTEs, stay_info, the kidney ICD
+                                       categorisation and patient_kidney_
+                                       summary. Missing the age expression
+                                       tail, the weight/height LEFT JOINs and
+                                       the final SELECT. Will not run.
                                        Job ID bquxjob_6570a768_19d84255827.
-                                       File carries a banner warning that the
-                                       template below it is a wrong guess.
-    extract_propofol_infusions.sql     [REAL] "QUERY 3", verbatim as run
-    extract_sas_observations.sql       [REAL] "QUERY 4", verbatim as run
+                                       The earlier guessed template that
+                                       contained the two wrong criteria has
+                                       been REMOVED from this file.
+    extract_propofol_infusions.sql     [COMPLETE] "QUERY 3", verbatim as run
+    extract_sas_observations.sql       [COMPLETE] "QUERY 4", verbatim as run
 
   paper/
     main.tex                     [OUTDATED - old framing, superseded by Overleaf]
@@ -533,6 +541,18 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
+--- Sep 2026: QUERY 2 partially recovered ---
+The patients query was supplied but the text was cut off mid-expression in the
+demographics CTE. The real portion replaced the previously guessed template,
+so the file now holds the genuine cohort CTEs, the icustays join and the full
+kidney ICD categorisation, none of which had ever been documented anywhere.
+The file is marked as non-runnable until the tail is recovered. Reading the
+recovered text also turned up two defects in the kidney flag logic, both
+recorded as MEDIUM in Section 9: ICD codes matched by the WHERE clause but
+categorised NULL (N19 and unlisted N17x), and kidney flags being
+hospital-admission level while applied to ICU-stay rows. Both affect only the
+abandoned Phase 1 analysis, not any current result.
+
 --- Sep 2026: QUERY 3 and QUERY 4 pasted into the repo ---
 The verbatim text of the propofol-infusion and SAS extraction queries was
 supplied and committed, closing two thirds of the long-standing "real SQL was
@@ -782,23 +802,46 @@ pip install sklearn fails.
         queries/extract_propofol_infusions.sql stub header (provenance added)
         queries/extract_sas_observations.sql   stub header (provenance added)
 
-[CRITICAL - PARTIALLY CLOSED 2026-09-02] Real BigQuery SQL: 2 of 3 in the repo.
+[CRITICAL - MOSTLY CLOSED 2026-09-02] Real BigQuery SQL: 2 complete, 1 partial.
 
-    IN THE REPO, real query text, verbatim as run:
+    COMPLETE, verbatim as run:
         queries/extract_propofol_infusions.sql   QUERY 3
         queries/extract_sas_observations.sql     QUERY 4
 
-    STILL A STUB, still blocking full reproducibility:
+    PARTIAL, and this is the remaining blocker:
         queries/extract_propofol_patients.sql    QUERY 2
-    QUERY 2 is the one that produces kidney_subgroups_patients.csv, and it is
-    the ONLY place the demographics, the anchor-year age computation, the
-    first_day_weight / first_day_height LEFT JOINs and the kidney comorbidity
-    flags are defined. Until it is recovered the cohort cannot be rebuilt from
-    this repository and the Data Availability statement is not yet supportable.
-    Retrieve it with job ID bquxjob_6570a768_19d84255827.
-    The stub file now carries a loud banner warning that the template block
-    below it is a GUESS and contains the two known-wrong criteria (age >= 18,
-    >= 11 SAS). Do not let that template be mistaken for the method.
+    The supplied QUERY 2 text was TRUNCATED mid-expression inside the
+    `demographics` CTE, at:
+        DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1, 0, 0, 0),
+    Everything up to that point is now in the file verbatim. Nothing was
+    invented to complete it. Still missing:
+        - the rest of the age expression (YEAR unit, + p.anchor_age AS age)
+        - the gender/weight/height projection
+        - the LEFT JOINs to mimiciv_3_1_derived.first_day_weight and
+          first_day_height
+        - the FROM/JOIN clauses of the demographics CTE
+        - the final SELECT assembling demographics + patient_kidney_summary
+    The file carries a banner saying it will not run and must not be cited as
+    the method. This is still strictly better than the wrong guessed template
+    it replaced, because every line now present is real, but the cohort STILL
+    cannot be rebuilt end to end and the Data Availability statement is still
+    not fully supportable. Retrieve the tail with job ID
+    bquxjob_6570a768_19d84255827.
+
+    WHAT THE PARTIAL QUERY 2 CONFIRMED:
+    - The anchor-year age computation is real and appears exactly where
+      Section 5 says it does. The YEAR argument and "+ anchor_age" fall just
+      past the cut, so the pattern is unambiguous but not literally verbatim.
+      Flag this if a reviewer asks for the exact expression.
+    - The cohort CTE block is identical to QUERY 3 and QUERY 4, differing only
+      in that QUERY 2's CTEs also project sas_count and propofol_count. Those
+      two columns do NOT appear in kidney_subgroups_patients.csv, so they are
+      either dropped by the final SELECT or were used only for inspection.
+    - The kidney flags come from hosp.diagnoses_icd. Verified against the CSV:
+      the flags are internally consistent with this logic (no row has
+      has_ANY_Kidney set without a specific flag, or vice versa). Prevalence:
+      AKI 28.7%, Hypertensive_Kidney 13.1%, CKD_Unspecified 8.8%,
+      CKD_Stage_5_ESRD 4.6%, ANY 36.2%, no flags at all 63.8%.
 
     WHAT THE RECOVERED SQL SETTLED:
     - Thresholds are HARD-CODED LITERALS, not derived or parameterised:
@@ -822,6 +865,37 @@ pip install sklearn fails.
     Note: queries/README.md also advertises extract_demographics.sql and
     extract_kidney_comorbidities.sql, neither of which exists. QUERY 2 appears
     to subsume both.
+
+[MEDIUM] Two defects in the kidney flag logic in QUERY 2. Phase 1 only.
+    Found 2026-09-02 by reading the recovered QUERY 2. The kidney subgroup
+    analysis is ABANDONED (Section 7, March 2026 null result), so neither
+    defect touches any current result. They are recorded because the Phase 1
+    null result rests on these flags, the flags are still columns in
+    kidney_subgroups_patients.csv, and Paper 3 or a reviewer question could
+    resurrect them. Do NOT silently reuse these flags without fixing both.
+
+    (a) ICD codes matched by the WHERE clause but categorised as NULL.
+        The WHERE pulls d.icd_code LIKE 'N19%' (unspecified kidney failure),
+        but no CASE branch matches N19: it is not in any IN list, and it
+        matches neither 'N0%' nor '58%'. Such rows fall to ELSE NULL, and
+        has_ANY_Kidney is MAX(CASE WHEN kidney_category IS NOT NULL ...), so
+        a patient whose ONLY kidney code is N19 is pulled into
+        kidney_diagnoses and then recorded as having no kidney disease at all.
+        The same gap applies to any N17x code outside the explicit IN list
+        ('N170','N171','N172','N178','N179'), since the WHERE uses LIKE 'N17%'.
+        Effect: under-counts the kidney cohort by an unknown amount. Cannot be
+        quantified from the CSV alone, because the flags are already collapsed;
+        it needs a rerun against diagnoses_icd.
+
+    (b) Kidney flags are hospital-admission level, applied to ICU-stay rows.
+        kidney_diagnoses joins diagnoses_icd on hadm_id, then groups by
+        stay_id. A hadm_id can contain multiple ICU stays, so every ICU stay
+        in an admission inherits that admission's diagnoses regardless of
+        whether the condition was present during that particular stay. For a
+        comorbidity-differential analysis this is a real mis-attribution.
+        MIMIC's diagnoses_icd is billing-level and has no timing information,
+        so there is no clean fix inside this query; the honest options are to
+        restrict to first ICU stay per admission or to state the limitation.
 
 [HIGH] The ">= 15 SAS observations" filter does not mean what it looks like.
     Established 2026-09-02 once the real SQL was available. The >= 15 count in
