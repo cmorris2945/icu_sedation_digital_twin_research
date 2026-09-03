@@ -90,11 +90,12 @@ Repo root: <local clone path>/icu_sedation_digital_twin_research/
       experiment_tracker.py      JSON experiment logging utility
       publication_plots.py       shared matplotlib styling, Wong colorblind palette
 
-  [DISCREPANCY - 2026-09-02, NOT RESOLVED, DO NOT GUESS]
-  The src/ listing above does not match the working tree. Files 05_cohort_
-  figures.py, 06_capacity_sweep.py and 07_capacity_stats.py do NOT exist in the
-  repo or in any commit on any branch. The scripts that DO exist and are not
-  listed above are:
+  [DISCREPANCY - 2026-09-02, PARTIALLY RESOLVED 2026-09-03]
+  The src/ listing above did not match the working tree. 05_cohort_figures.py
+  NOW EXISTS: it was written and run on 2026-09-03 and does what this listing
+  describes, so that entry is no longer aspirational. 06_capacity_sweep.py and
+  07_capacity_stats.py still do NOT exist in the repo or in any commit on any
+  branch. The scripts that DO exist and are not listed above are:
       src/02b_run_capacity_sweep.py     produced capacity_sweep_results.csv
       src/03b_analyze_capacity_sweep.py produced capacity_sweep_summary.csv
       src/04b_plot_capacity_sweep.py    produced the capacity figures
@@ -534,6 +535,25 @@ established where the 1,490 -> 1,489 patient goes and how much data the
 72-hour simulation window silently discards. The query TEXT is still not in
 the repo; only the metadata was recovered.
 
+--- Sep 2026: cohort figures, and the persistence baseline problem ---
+05_cohort_figures.py was written and run, producing the cohort distributions,
+Table 1, the per-patient error scatters and the correlations Kahveci asked
+for. Per-patient MAE required retraining the 4-unit FULL_HYBRID across all ten
+sweep seeds, since only aggregate MAE had ever been saved. The aggregate
+reproduced the published 0.3514 to within 0.10 SDs.
+
+Two things surfaced that were not part of the request and matter more than it.
+First, a naive persistence baseline beats every model the project has built,
+because SAS is unchanged from the previous observation in 78.3% of test
+instances. Recorded as the first CRITICAL item in Section 9; it bears directly
+on whether the clinical framing survives. Second, individual seeds do not
+reproduce across runs even on the same machine, though the aggregate does;
+recorded as HIGH in the same section.
+
+Also of note: per-patient error correlates rho = 0.851 with within-patient SAS
+variability, so the headline MAE is largely a statement about how many
+non-varying patients the split happens to contain.
+
 --- Sep 2026: QUERY 2 recovered; the SQL item is CLOSED ---
 The patients query was supplied in two pieces, the first truncated
 mid-expression in the demographics CTE and the tail following separately. The
@@ -605,16 +625,36 @@ CURRENT:
       Writes: figures/ablation_main.{png,pdf}, figures/absolute_mae.{png,pdf}
       These are the 16-UNIT ABLATION figures, NOT the capacity result.
 
-  src/05_cohort_figures.py                         [WRITTEN, NOT YET RUN]
-      Reads: cached_features.pkl, data/kidney_subgroups_patients.csv (optional)
-      Writes: figures/cohort/*, cohort_table1.csv, cohort_correlations.csv
+  src/05_cohort_figures.py                         [WRITTEN AND RUN 2026-09-03]
+      Reads: cached_features.pkl, data/kidney_subgroups_patients.csv (required,
+             not optional: the RAW csv is the only place the missing weight and
+             height are still visible as missing, because the pkl already has
+             the 75 kg / 170 cm defaults substituted)
+      Writes: figures/cohort/{cohort_distributions, cohort_sex_comorbidity,
+              cohort_mae_scatter, cohort_ec50_scatter}.{png,pdf}
+              cohort_table1.csv, cohort_correlations.csv,
+              cohort_per_patient_mae.csv (cache)
       Kahveci's request: cohort distributions + per-patient scatter plots with
       explicit correlations. Computes per-patient MAE by retraining the 4-unit
-      FULL_HYBRID LSTM with the same split, because 02_run_ablation.py only
-      saves aggregate MAE.
-      BLOCKED: requires cached_features.pkl (local only).
-      [DISCREPANCY 2026-09-02] This file is NOT present in the repo or in any
-      commit. See Section 2.
+      FULL_HYBRID LSTM with the same split, because 02_run_ablation.py and
+      02b_run_capacity_sweep.py only save aggregate MAE.
+
+      Design decisions worth keeping:
+      - Height, weight and BMI statistics use MEASURED values only. BMI is
+        computable for 1,089 of 1,489 patients (73.1%); the rest lack a real
+        height, a real weight, or both. One panel deliberately plots the
+        as-modelled height including the 170 cm spike, because that spike is
+        what the models consumed and it belongs in Limitations.
+      - Retrains across all ten sweep seeds (42-51) rather than one, and
+        averages each instance's absolute error over seeds before aggregating
+        within patient. A single seed is too noisy to correlate against.
+      - Per-patient errors are cached to cohort_per_patient_mae.csv, so
+        re-running regenerates figures in seconds. Pass --force to retrain.
+      - Reports the instance-weighted test MAE against the published
+        0.3514 +/- 0.0175 as a self-check, and separately the patient-weighted
+        mean, which is a different quantity and will not match it.
+      - First script in the project to import src/lib/publication_plots.py,
+        which had been dead code since it was written.
 
   src/07_capacity_stats.py                         [WRITTEN, NOT YET RUN]
       Reads: capacity_sweep_results.csv
@@ -708,6 +748,73 @@ pip install sklearn fails.
     DECISION NEEDED: standardize both tables on capacity_sweep_results.csv as the
     single source of truth. Then regenerate the ablation table's LSTM column.
 
+[CRITICAL] A NAIVE PERSISTENCE BASELINE BEATS EVERY MODEL IN THE PROJECT.
+    Found 2026-09-03 while computing per-patient errors for the cohort
+    figures. This is the most consequential thing in this file. Read it before
+    doing any more modelling work.
+
+    Predicting simply "the SAS score will be whatever it was at the last
+    observation" -- that is, returning the sas_last feature unchanged, with no
+    training of any kind -- scores better on the identical test split than
+    anything the project has built:
+
+        method                              test MAE (instance-weighted)
+        persistence (predict sas_last)          0.2866
+        4-unit FULL_HYBRID LSTM (best in sweep) 0.3514
+        best XGBoost (FULL_HYBRID ablation)     0.3330
+        window mean (predict sas_mean)          0.4699
+        global train mean                       0.7316
+
+    Persistence is 18.4% better than the best LSTM and 13.9% better than the
+    best XGBoost. Paired over the 298 test patients it wins decisively:
+    model 0.3395 vs persistence 0.2769 patient-weighted, Wilcoxon
+    p = 9.4e-19, with the model ahead for only 72 of 298 patients (24.2%).
+
+    WHY: SAS is unchanged from the previous observation in 78.3% of test
+    instances. Persistence scores exactly zero error on all of them. The
+    prediction task as currently framed is dominated by a signal the models
+    are given (sas_last is a CLINICAL feature present in every configuration,
+    PURE_ML included) and then degrade rather than exploit.
+
+    Corroborating evidence from the same analysis: per-patient MAE correlates
+    rho = 0.851 (p = 8.5e-85) with how variable that patient's SAS actually
+    is. Broken down by within-patient SAS variability:
+        SAS constant (n=74, 24.8% of test patients)   mean MAE 0.0984
+        std 0-0.5    (n=82)                           mean MAE 0.2311
+        std 0.5-1    (n=109)                          mean MAE 0.4528
+        std >1       (n=33)                           mean MAE 0.7756
+    Aggregate MAE is therefore mostly a statement about how many easy,
+    non-varying patients are in the split, not about model quality.
+
+    WHAT THIS DOES AND DOES NOT INVALIDATE:
+    - It does NOT directly invalidate the capacity-moderation finding. That is
+      a RELATIVE comparison between feature configurations at matched
+      capacity, and removing mechanistic features still degrades small LSTMs
+      more than large ones regardless of where the absolute floor sits.
+    - It DOES invalidate any clinical framing that says the hybrid approach
+      improves ICU sedation prediction. It does not improve on doing nothing.
+    - Reviewers at a clinical venue will ask for a persistence baseline. It is
+      the standard baseline for slowly-varying clinical time series. Better to
+      report it than to be caught without it.
+
+    OPTIONS, none of them free:
+    (a) Report persistence honestly and reframe the contribution as purely
+        methodological, about capacity and inductive bias, with an explicit
+        statement that no configuration beats persistence on this task.
+    (b) Change the prediction target to something persistence cannot solve:
+        predict the CHANGE in SAS, or predict only at instances where a change
+        occurs, or forecast further ahead than the next observation. This is a
+        real experiment, not a rewording, and would mean rerunning everything.
+    (c) Evaluate on the 21.7% of instances where SAS actually changes.
+        Persistence scores MAE 1.3235 there, so there is real headroom, but
+        conditioning the test set on the target is a leak unless handled
+        carefully and a reviewer will scrutinise it.
+    My recommendation is (a) plus (b) as the next experiment. Do not publish
+    the clinical framing without one of these.
+
+    Reproduce with: python src/05_cohort_figures.py
+    Outputs: cohort_baseline_comparison.csv
+
 [CRITICAL] Manuscript states the WRONG cohort inclusion criteria.
     Discovered 2026-09-02 when the real BigQuery SQL was reviewed.
     Paper currently says:  ">= 11 SAS observations"
@@ -751,6 +858,14 @@ pip install sklearn fails.
         full corrected cohort-selection paragraph: criteria, the absent age
         filter, the anchor-year age computation, and the weight/height
         defaults with their rates. Copy it directly into Overleaf.
+
+    RESULTS - must add, and this one may change the paper's framing:
+    [ ] The persistence baseline (MAE 0.2866) and the fact that it beats every
+        model in the project. See the CRITICAL item at the top of this
+        section. Decide between reframing as purely methodological or running
+        the change-prediction experiment BEFORE writing more of the results.
+    [ ] State that the reported +/- SD is seed-to-seed variation within one
+        run, not a reproducibility interval; per-seed values do not reproduce.
 
     METHODS - must change:
     [ ] Inclusion criteria: state ">= 15 SAS observations AND >= 5 propofol
@@ -912,6 +1027,45 @@ pip install sklearn fails.
         MIMIC's diagnoses_icd is billing-level and has no timing information,
         so there is no clean fix inside this query; the honest options are to
         restrict to first ICU stay per admission or to state the limitation.
+
+[HIGH] Setting the seed does NOT make a run reproducible. Same seed, same
+    machine, same venv, different answer.
+    Found 2026-09-03 by rerunning 4-unit FULL_HYBRID for seeds 42-51 and
+    comparing against the stored capacity_sweep_results.csv rows:
+
+        seed   sweep (May)   rerun (Sep)   difference
+        42       0.3408        0.3506        +0.0098
+        43       0.3381        0.3466        +0.0085
+        44       0.3972        0.3341        -0.0631   <-- 3.6 sweep SDs
+        45       0.3480        0.3703        +0.0223
+        46       0.3402        0.3396        -0.0006
+        47       0.3613        0.3560        -0.0053
+        48       0.3490        0.3596        +0.0106
+        49       0.3409        0.3657        +0.0248
+        50       0.3470        0.3534        +0.0064
+        51       0.3514        0.3557        +0.0043
+        mean     0.3514        0.3532        +0.0018
+
+    The AGGREGATE reproduces well: 0.3532 +/- 0.0111 against the published
+    0.3514 +/- 0.0175, a difference of 0.10 sweep SDs. Individual seeds do
+    not. np.random.seed plus tf.random.set_seed does not pin multithreaded
+    CPU reductions in TensorFlow, so per-seed values are not deterministic.
+
+    CONSEQUENCES, in order of importance:
+    - Never quote a single seed's MAE anywhere in the manuscript as if it were
+      a fixed property of the configuration. Quote the mean over seeds.
+    - The +/- 0.0175 SD reported for the sweep is SEED-to-seed variation
+      measured within one run. It understates true run-to-run variation, since
+      re-running the same seed moves the number too. Describe it as "variation
+      across random initialisations within a single run", not as a
+      reproducibility interval.
+    - Seed 44 is the specific reason to care. In the sweep it was the high
+      outlier at 0.3972 and it inflated the reported SD; on rerun it was the
+      LOWEST at 0.3341. Any narrative that leans on a particular seed's
+      behaviour is unsafe.
+    - For genuine determinism a rerun would need TF_DETERMINISTIC_OPS=1 and
+      single-threaded execution, at a large speed cost. Not obviously worth
+      it, but the limitation should be stated rather than left implied.
 
 [HIGH] The ">= 15 SAS observations" filter does not mean what it looks like.
     Established 2026-09-02 once the real SQL was available. The >= 15 count in
