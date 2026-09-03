@@ -19,10 +19,30 @@
 --   has_AKI through has_ANY_Kidney: comorbidity flags (legacy from earlier
 --                                    kidney disease analysis, can be ignored)
 --
--- Inclusion criteria:
---   - Age >= 18 at admission
---   - Received propofol at least once during ICU stay
---   - Had at least 11 SAS observations during stay (10 for history + 1 to predict)
+-- Inclusion criteria (CORRECTED 2026-09-02 against the recovered query):
+--   - At least 15 SAS observations during the ICU stay
+--   - At least 5 propofol infusion events during the ICU stay
+--   - Propofol rate > 0
+--   - SAS valuenum between 1 and 7
+--
+--   NO age filter is applied. MIMIC-IV contains adult patients only by
+--   construction, so the cohort is adult (verified: min 18, max 93), but
+--   there is no age >= 18 predicate in this query. Earlier versions of this
+--   header claimed one, and claimed ">= 11 SAS observations". Both were
+--   wrong. The 11 is the MODELING requirement enforced downstream in
+--   01_build_features.py (10 history steps + 1 prediction target); it is not
+--   the extraction filter and it never binds, since 15 is stricter.
+--
+-- Age is COMPUTED using MIMIC's anchor-year adjustment, not read raw:
+--   DATETIME_DIFF(i.intime, DATETIME(p.anchor_year, 1, 1), YEAR) + p.anchor_age
+--
+-- Weight and height are LEFT JOINed from
+--   mimiciv_3_1_derived.first_day_weight and first_day_height,
+--   so both may be NULL (in the extract: weight 1.2%, height 26.7%).
+--
+-- Extraction date: 2026-04-12
+-- BigQuery job ID: bquxjob_6570a768_19d84255827
+-- itemids: propofol 222168 (icu.inputevents), SAS 223753 (icu.chartevents)
 --
 -- AUTHOR: Christopher Morris
 -- =====================================================================

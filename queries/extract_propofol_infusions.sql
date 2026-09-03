@@ -27,6 +27,14 @@
 --   We preserve the original units in this output so the conversion is
 --   clearly visible in the analysis code rather than hidden in the query.
 --
+-- Provenance (recorded 2026-09-02):
+--   Extraction date: 2026-04-12
+--   BigQuery job ID: bquxjob_10b927f2_19d84266954
+--   itemid: 222168 (propofol) in physionet-data.mimiciv_3_1_icu.inputevents
+--   Filters applied: rate > 0; stays with at least 5 propofol infusion events.
+--   Verified against the extract: minimum 5 events per patient (hard floor),
+--   no non-positive or null rates, rateuom uniformly 'mcg/kg/min'.
+--
 -- AUTHOR: Christopher Morris
 -- =====================================================================
 --

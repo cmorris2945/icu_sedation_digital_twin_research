@@ -178,7 +178,13 @@ Our work tests three formal hypotheses. The primary hypothesis is that augmentin
 
 We used the MIMIC-IV version 3.1 database \cite{johnson_mimiciv_2023} as our data source. MIMIC-IV is a publicly available critical care database containing detailed clinical records from over 200,000 ICU stays at Beth Israel Deaconess Medical Center between 2008 and 2022. Access to MIMIC-IV requires credentialing through PhysioNet including completion of human subjects research ethics training. We accessed the data through Google BigQuery which provides query-level access without requiring database download.
 
-Our cohort selection identified adult patients (age 18 or older) who received propofol infusions during their ICU stay and had at least eleven Sedation-Agitation Scale assessments documented during their stay. We required eleven assessments because our temporal modeling uses the past ten observations to predict the next observation, so eleven represents the minimum needed for a single prediction instance. The complete cohort selection logic is implemented in the SQL queries provided in our project repository.
+% CORRECTED 2026-09-02 against the recovered BigQuery SQL. The previous text
+% claimed an age >= 18 filter that was never applied, and reported the modeling
+% requirement (11 SAS observations) as though it were the extraction filter
+% (15 SAS observations and 5 propofol events). See instructions.txt Section 9.
+Our cohort was extracted from MIMIC-IV v3.1 on 12 April 2026. Inclusion required at least fifteen Sedation-Agitation Scale assessments (itemid 223753, values restricted to the valid range of 1 to 7) and at least five propofol infusion events with a positive rate (itemid 222168) during the ICU stay. We applied no explicit age filter; MIMIC-IV contains only adult patients by construction, and the resulting cohort spans ages 18 to 93. Patient age was computed using MIMIC's anchor-year de-identification adjustment rather than read directly. Weight and height were drawn from the MIMIC-derived first-day measurement tables by outer join and were therefore missing for 1.2\% and 26.7\% of patients respectively, for whom we substituted 75\,kg and 170\,cm.
+
+Separately from these extraction criteria, our temporal modeling requires at least eleven assessments per patient, since it uses the past ten observations to predict the next one. This modeling requirement is weaker than the extraction filter and never binds. The complete cohort selection logic is implemented in the SQL queries provided in our project repository.
 
 \subsection{Eleveld Pharmacokinetic-Pharmacodynamic Model}
 
