@@ -2,6 +2,10 @@
 
 This repository contains the complete code, analyses, and documentation for research investigating whether mechanistic pharmacokinetic-pharmacodynamic modeling can be combined with machine learning to improve ICU sedation prediction. The work is part of a PhD research program at the University of Florida, Department of Computer and Information Science and Engineering.
 
+
+<img width="794" height="400" alt="image" src="https://github.com/user-attachments/assets/8384918a-80ad-4d7b-b682-a10d34b5b43a" />
+
+
 ## What This Research Is About
 
 The fundamental question we are addressing is whether augmenting machine learning models with features derived from mechanistic propofol pharmacology produces better predictions of ICU sedation levels than using machine learning alone. We use the Eleveld 2018 pharmacokinetic-pharmacodynamic model as our mechanistic foundation, calibrate the EC50 parameter to individual patients to create patient-specific digital twins, and test the hybrid approach across multiple machine learning algorithm families.
