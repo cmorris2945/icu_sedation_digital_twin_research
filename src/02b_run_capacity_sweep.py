@@ -50,6 +50,7 @@ import warnings
 import pickle
 import os
 import sys
+import argparse
 warnings.filterwarnings('ignore')
 
 from sklearn.preprocessing import StandardScaler
@@ -66,18 +67,50 @@ from tensorflow.keras.optimizers import Adam
 
 # Configuration
 CACHE_FILE = 'cached_features.pkl'
-RESULTS_FILE = 'capacity_sweep_results.csv'
+RESULTS_FILES = {
+    'full': 'capacity_sweep_arm_a_full_results.csv',
+    'interior': 'capacity_sweep_arm_b_interior_results.csv',
+    'matched': 'capacity_sweep_arm_c_matched_results.csv',
+}
 
 BASE_SEED = 42
 SEQUENCE_LENGTH = 10
 LSTM_UNITS_LIST = [4, 8, 16, 32]    # Capacity sweep over LSTM hidden-unit sizes
 FIXED_EPOCHS = 50                   # Same fixed-epoch setup as the main ablation
 N_SEEDS = 10                        # Same seed count as the main ablation
+EC50_BOUND = 0.5
+EC50_TOL = 1e-3
+
+parser = argparse.ArgumentParser(description='Run the three-arm capacity sweep.')
+parser.add_argument('--arm', choices=['all', *RESULTS_FILES], default='all')
+ARGS = parser.parse_args()
+
+LOG_FILE = 'three_arm_capacity_sweep.log'
+
+
+class Tee:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, text):
+        for stream in self.streams:
+            stream.write(text)
+            stream.flush()
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
+
+
+log_stream = open(LOG_FILE, 'a', encoding='utf-8', buffering=1)
+sys.stdout = Tee(sys.stdout, log_stream)
+sys.stderr = Tee(sys.stderr, log_stream)
 
 print("=" * 70)
 print("LSTM CAPACITY SWEEP")
 print("=" * 70)
 print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print(f"Log file: {LOG_FILE}")
 print()
 
 # Verify cache file exists
@@ -85,17 +118,6 @@ if not os.path.exists(CACHE_FILE):
     print(f"ERROR: Feature cache file not found: {CACHE_FILE}")
     print("Please run 'python 01_build_features.py' first.")
     sys.exit(1)
-
-# Resumability: track which (configuration, seed, lstm_units) tuples already exist
-completed_runs = set()
-if os.path.exists(RESULTS_FILE):
-    existing = pd.read_csv(RESULTS_FILE)
-    for _, row in existing.iterrows():
-        completed_runs.add((row['configuration'], int(row['seed']), int(row['lstm_units'])))
-    print(f"Found {len(completed_runs)} previously completed runs in {RESULTS_FILE}")
-    print("Will skip these and only run remaining experiments")
-else:
-    print("No previous results found, starting from scratch")
 
 # Load cached features
 print(f"\nLoading features from {CACHE_FILE}...")
@@ -113,16 +135,33 @@ df['ce_seq_trend'] = ce_seqs[:, -1] - ce_seqs[:, 0]
 df['ce_seq_max'] = ce_seqs.max(axis=1)
 df['ce_seq_last'] = ce_seqs[:, -1]
 
-# Same patient-level train/test split as the original ablation, using the same
-# random_state, so capacity sweep results are directly comparable.
-unique_patients = df['stay_id'].unique()
-train_patients, test_patients = train_test_split(
-    unique_patients, test_size=0.2, random_state=BASE_SEED
-)
-train_df = df[df['stay_id'].isin(train_patients)].reset_index(drop=True)
-test_df = df[df['stay_id'].isin(test_patients)].reset_index(drop=True)
-print(f"   Train: {len(train_patients)} patients, {len(train_df)} observations")
-print(f"   Test:  {len(test_patients)} patients, {len(test_df)} observations")
+ec50_by_patient = df.groupby('stay_id')['EC50_calibrated'].first()
+pinned_low_ids = set(ec50_by_patient.index[
+    (ec50_by_patient - EC50_BOUND).abs() <= EC50_TOL
+])
+pinned_high_ids = set(ec50_by_patient.index[
+    (ec50_by_patient - 10.0).abs() <= EC50_TOL
+])
+interior_ids = set(ec50_by_patient.index) - pinned_low_ids - pinned_high_ids
+full_ids = set(ec50_by_patient.index)
+matched_ids = set(np.random.RandomState(BASE_SEED).choice(
+    np.array(sorted(full_ids)), size=len(interior_ids), replace=False
+))
+
+print("\nPatient classification from regenerated cache:")
+print(f"   pinned-low: {len(pinned_low_ids)}")
+print(f"   pinned-high: {len(pinned_high_ids)}")
+print(f"   interior: {len(interior_ids)}")
+print(f"   arm C size-matched sample: {len(matched_ids)} (sampling seed {BASE_SEED})")
+if pinned_high_ids:
+    print("WARNING: pinned-high values remain in the regenerated cache")
+else:
+    print("Confirmed: no pinned-high values remain")
+pd.DataFrame([
+    {'arm': 'A_full', 'n_patients': len(full_ids), 'sampling_seed': np.nan},
+    {'arm': 'B_interior', 'n_patients': len(interior_ids), 'sampling_seed': np.nan},
+    {'arm': 'C_matched', 'n_patients': len(matched_ids), 'sampling_seed': BASE_SEED},
+]).to_csv('three_arm_cohort_counts.csv', index=False)
 
 # Feature groups, identical to the main ablation
 CLINICAL = ['age', 'gender', 'weight', 'height', 'sas_last', 'sas_mean',
@@ -166,14 +205,14 @@ CONFIGS = {
 }
 
 
-def save_result(result):
+def save_result(result, results_file):
     """Append a single result to the output CSV. Incremental write so partial
     progress is preserved if the script is interrupted."""
     df_row = pd.DataFrame([result])
-    if os.path.exists(RESULTS_FILE):
-        df_row.to_csv(RESULTS_FILE, mode='a', header=False, index=False)
+    if os.path.exists(results_file):
+        df_row.to_csv(results_file, mode='a', header=False, index=False)
     else:
-        df_row.to_csv(RESULTS_FILE, index=False)
+        df_row.to_csv(results_file, index=False)
 
 
 def run_lstm(config, seed, lstm_units):
@@ -250,47 +289,74 @@ def run_lstm(config, seed, lstm_units):
     }
 
 
-total_runs = len(LSTM_UNITS_LIST) * len(CONFIGS) * N_SEEDS
-print(f"\nRunning experiments...")
-print(f"Total expected: {len(LSTM_UNITS_LIST)} sizes x {len(CONFIGS)} configs x "
-      f"{N_SEEDS} seeds = {total_runs} runs")
+ARM_PATIENTS = {
+    'full': full_ids,
+    'interior': interior_ids,
+    'matched': matched_ids,
+}
+ARM_LABELS = {
+    'full': 'A: full cohort',
+    'interior': 'B: interior patients only',
+    'matched': 'C: size-matched random full-cohort sample',
+}
+arms_to_run = list(RESULTS_FILES) if ARGS.arm == 'all' else [ARGS.arm]
+total_runs = len(arms_to_run) * len(LSTM_UNITS_LIST) * len(CONFIGS) * N_SEEDS
+print(f"\nRunning {len(arms_to_run)} arm(s), {total_runs} LSTM trainings total")
 print()
 
 n_done_now = 0
 n_skipped = 0
 
-for lstm_units in LSTM_UNITS_LIST:
-    print(f"{'=' * 70}")
-    print(f"LSTM_UNITS = {lstm_units}")
-    print(f"{'=' * 70}")
+for arm in arms_to_run:
+    results_file = RESULTS_FILES[arm]
+    completed_runs = set()
+    if os.path.exists(results_file):
+        existing = pd.read_csv(results_file)
+        completed_runs = {
+            (row['configuration'], int(row['seed']), int(row['lstm_units']))
+            for _, row in existing.iterrows()
+        }
+        print(f"Found {len(completed_runs)} completed runs in {results_file}; resuming")
 
-    for config_name, config in CONFIGS.items():
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] units={lstm_units} "
-              f"config={config_name}")
-        print(f"   {config['description']}")
+    arm_df = df[df['stay_id'].isin(ARM_PATIENTS[arm])].reset_index(drop=True)
+    unique_patients = arm_df['stay_id'].unique()
+    train_patients, test_patients = train_test_split(
+        unique_patients, test_size=0.2, random_state=BASE_SEED
+    )
+    train_df = arm_df[arm_df['stay_id'].isin(train_patients)].reset_index(drop=True)
+    test_df = arm_df[arm_df['stay_id'].isin(test_patients)].reset_index(drop=True)
+    print(f"{'=' * 70}\nARM {ARM_LABELS[arm]}\n{'=' * 70}")
+    print(f"   Patients: {len(unique_patients)}; train {len(train_patients)} "
+          f"({len(train_df)} instances), test {len(test_patients)} "
+          f"({len(test_df)} instances)")
+    print(f"   Results: {results_file}")
 
-        for seed_offset in range(N_SEEDS):
-            seed = BASE_SEED + seed_offset
-            if (config_name, seed, lstm_units) not in completed_runs:
-                result = run_lstm(config, seed, lstm_units)
-                save_result({
-                    'algorithm': 'LSTM',
-                    'configuration': config_name,
-                    'seed': seed,
-                    'lstm_units': lstm_units,
-                    **result,
-                })
-                print(f"   units={lstm_units} seed={seed}: "
-                      f"MAE={result['mae']:.4f}, R²={result['r2']:.4f}, "
-                      f"train_loss={result['final_train_loss']:.4f}, "
-                      f"val_loss={result['final_val_loss']:.4f}")
-                n_done_now += 1
-            else:
-                n_skipped += 1
-                print(f"   units={lstm_units} seed={seed}: already done, skipping")
+    for lstm_units in LSTM_UNITS_LIST:
+        print(f"LSTM_UNITS = {lstm_units}")
+        for config_name, config in CONFIGS.items():
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] units={lstm_units} "
+                  f"config={config_name}")
+            for seed_offset in range(N_SEEDS):
+                seed = BASE_SEED + seed_offset
+                if (config_name, seed, lstm_units) not in completed_runs:
+                    result = run_lstm(config, seed, lstm_units)
+                    save_result({
+                        'arm': arm,
+                        'algorithm': 'LSTM',
+                        'configuration': config_name,
+                        'seed': seed,
+                        'lstm_units': lstm_units,
+                        'n_patients': len(unique_patients),
+                        'n_train_patients': len(train_patients),
+                        'n_test_patients': len(test_patients),
+                        **result,
+                    }, results_file)
+                    print(f"   seed={seed}: MAE={result['mae']:.4f}, "
+                          f"R²={result['r2']:.4f}")
+                    n_done_now += 1
+                else:
+                    n_skipped += 1
+                    print(f"   seed={seed}: already done, skipping")
 
-        print()
-
-print(f"Completed {n_done_now} new runs, skipped {n_skipped} previously completed")
+print(f"\nCompleted {n_done_now} new runs, skipped {n_skipped} previously completed")
 print(f"\nFinished at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-print("\nNext step: run 'python 03b_analyze_capacity_sweep.py' to summarize")

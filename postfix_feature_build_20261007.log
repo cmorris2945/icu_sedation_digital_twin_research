@@ -1,0 +1,30 @@
+POST-FIX FEATURE BUILD
+Date: 2026-10-07
+Command: py -3.11 src\01_build_features.py
+Python: 3.11.9 (reported environment)
+Started: 2026-10-07 19:46:39
+Finished: 2026-10-07 20:08:06
+
+Loaded:
+  Patients: 1,490
+  Propofol events: 31,235
+  SAS observations: 113,536
+
+Completed:
+  Patients processed successfully: 1,490
+  Patients skipped: 0
+  Prediction instances: 30,931
+  Patients in final dataset: 1,489
+  Cache: cached_features.pkl (9.54 MB)
+
+Aggregate read-back classification (tolerance 0.001):
+  Pinned-low: 774
+  Pinned-high: 0
+  Numerically interior: 715
+  Exact population EC50 fallback values: 45
+  Fitted interior values after separating population fallbacks: 670
+
+The original pre-fix pickle was not preserved: the attempted copy occurred after
+an earlier corrected build had replaced it. The cache named
+cached_features_post_ec50_fix_snapshot.pkl is a post-fix snapshot, not the
+pre-fix published cache. See instructions.txt Section 11.6.

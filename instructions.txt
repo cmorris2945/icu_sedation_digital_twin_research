@@ -15,7 +15,7 @@ but not WHY.
 Anything marked [VERIFY] or [TODO] is not yet confirmed and must not be treated
 as fact. Do not fill these in by guessing.
 
-Last updated: 2026-09-02
+Last updated: 2026-10-07
 
 ================================================================================
 1. PROJECT IDENTITY
@@ -1472,14 +1472,104 @@ calibration had insufficient drug exposure to identify the parameter, and for
 another 3% it had no data at all. Options, in increasing order of work:
     (a) Report the pinning honestly and restrict any personalisation claim to
         the 45% of patients with an identifiable interior optimum.
-    (b) Fix the n = 0 case so it falls back to EC50_pop = 3.08 as the code's
-        own exception handler already intends. That is a two-line change and
-        removes 45 fabricated values. It changes the feature matrix, so
-        everything downstream would need regenerating.
+    (b) [IMPLEMENTED 2026-10-07] Fix the n = 0 case so it falls back to
+        EC50_pop = 3.08, matching the intent of the exception handler. The
+        feature cache must be rebuilt and downstream experiments rerun.
     (c) Re-anchor E0 to something appropriate for ICU SAS, or fit E0 jointly
         with EC50. This is the real fix for mechanism 1 and it is a modelling
         change, not a bug fix.
 Do not describe EC50 as patient-calibrated without addressing (a) at minimum.
+
+--- 11.6 ZERO-OBSERVATION EC50 FALLBACK AND CAPACITY EXPERIMENT ---
+
+Implemented 2026-10-07 in src/lib/ec50_calibration.py and
+src/01_build_features.py: when no calibration timestamp lands inside the
+simulated trajectory, calibration returns EC50_pop (3.08) without invoking
+the optimizer. The ordinary bounded optimization and exception fallback are
+unchanged. This corrects the old flat-objective artifact; it does not address
+the separate low-bound pinning mechanism described above.
+
+Run environment (fresh Windows clone, 2026-10-07; versions supplied for this
+environment and used for the feature rebuild):
+    Python          3.11.9
+    pandas          3.0.6       (newer than original run's pandas 2.x)
+    NumPy           2.4.6       (original run: 1.26.4)
+    SciPy           1.17
+    TensorFlow      2.21.0
+    scikit-learn    installed; exact version not recorded
+    XGBoost         installed; exact version not recorded
+This is an environment-level reproduction check, not bitwise identity of model
+training. Capture `py -3.11 -m pip freeze` at the start of future runs.
+
+Data provenance: the operator reports freshly re-pulling the three local CSVs
+from BigQuery on 2026-10-07 using the committed queries in `queries/`. The
+feature build consumed the local CSVs and reproduced the established cohort
+counts. Re-extraction is reproducible by credentialed MIMIC-IV v3.1 BigQuery
+users. Job IDs for the 2026-10-07 extraction were not recorded (pending).
+
+Fresh-clone reproducibility check, Python 3.11.9 and newer scientific packages
+(pandas 3.0.6, NumPy 2.4.6, SciPy 1.17, TensorFlow 2.21): the user reports that
+01_build_features.py reproduced the original cohort exactly, with 30,931
+prediction instances from 1,489 patients. The post-fix build completed
+2026-10-07 20:08:06 on this Windows machine and independently confirmed:
+    loaded: 1,490 patients, 31,235 propofol events, 113,536 SAS observations
+    output: 30,931 prediction instances, 1,489 patients, 9.54 MB cache
+    processing: 1,490 processed successfully, 0 skipped
+The original cohort totals therefore reproduce with the newer pandas and
+NumPy versions. `py -3.11 src/09_ec50_cache_classification.py --cache
+cached_features.pkl` read back the completed cache and reported:
+    pinned-low (within 0.001 of 0.5): 774
+    pinned-high (within 0.001 of 10.0): 0
+    numerically interior (outside both boundary tolerances): 715
+    exact population EC50 values (3.08): 45
+The 715 numerically interior patients comprise 670 fitted interior values and
+45 population fallbacks. The latter are not patient-specific fitted estimates;
+they are off-bound only because the empty-window fallback is 3.08. Arm B uses
+the requested off-bound definition and therefore includes all 715; preserve
+the 670/45 composition in interpretation.
+
+Cache provenance and preservation incident:
+    cached_features.pkl                         corrected post-fix cache;
+                                                rebuilt 2026-10-07 20:08:06.
+    cached_features_post_ec50_fix_snapshot.pkl  verified post-fix snapshot;
+                                                10,007,525 bytes, 774 low,
+                                                0 high, 715 interior.
+The user requested preservation of the pre-fix cache. The first corrected
+build completed before the attempted copy, so the copy captured post-fix data.
+It was renamed to the accurate snapshot name above. The original pre-fix pickle
+was overwritten and is NOT preserved in this working tree. Previously
+published results remain attributable to the pre-fix pipeline/cache as
+recorded in the historical run logs, but the old binary cannot be re-audited
+here. Never claim that `cached_features_post_ec50_fix_snapshot.pkl` was used
+for published results. Both pickle files are git-ignored. Never force-add
+either file or any patient-level cache/data.
+
+The post-fix cache SHA-256 and the 2026-10-07 raw-query job IDs were not
+recorded at build time; both are pending. The rebuilt cache's date, output
+size, cohort counts, and aggregate classification were read back and verified.
+
+Three-arm capacity experiment (all use the 4/8/16/32-unit LSTM, five feature
+configurations, seeds 42-51, 50 epochs, batch size 64, and patient-level
+80/20 split with random_state=42):
+    Arm A: full regenerated cohort.
+    Arm B: patients classified as interior by EC50_calibrated, excluding
+           values within 0.001 of either search bound.
+    Arm C: random sample of the full cohort, sampled without replacement with
+           seed 42 and sized to Arm B; split independently with the same
+           patient-level split procedure.
+
+Run with: py -3.11 src/02b_run_capacity_sweep.py --arm all
+The script resumes each arm independently and writes raw runs to
+capacity_sweep_arm_{a_full,b_interior,c_matched}_results.csv. All console and
+error output is appended to three_arm_capacity_sweep.log. Analyze only after
+all 10 seeds are present in every capacity/configuration cell:
+    py -3.11 src/03c_analyze_three_arm_capacity_sweep.py
+This writes one summary CSV per arm, a combined summary, the Pure-ML versus
+Full-Hybrid degradation comparison, and Spearman plus exponential-fit stats.
+The key comparison is Arm B minus Arm C degradation at each capacity; positive
+values mean a larger relative mechanistic benefit in the interior cohort than
+in an equally sized random sample. No values should be reported until the
+corresponding result and log files exist and all cells are complete.
 
 ================================================================================
 END

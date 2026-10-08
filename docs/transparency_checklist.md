@@ -1,6 +1,6 @@
 # Research Transparency and Reproducibility Checklist
 ## ICU Sedation Digital Twin Project
-**Last Updated:** April 19, 2026
+**Last Updated:** October 7, 2026
 
 This document tracks all methodological decisions for full transparency and reproducibility.
 
@@ -13,28 +13,33 @@ This document tracks all methodological decisions for full transparency and repr
 | Database | MIMIC-IV v3.1 | PhysioNet credentialed access |
 | Access Method | Google BigQuery | Project: physionet-data |
 | IRB/DUA | [Your IRB number] | [Date approved] |
-| Extraction Date | [Date] | |
+| Extraction Date | 2026-10-07 | Fresh BigQuery pulls using the committed repository queries; reproducible for credentialed MIMIC-IV users. |
 | Patient Cohort Size | 1,490 patients (current) | May change with comorbidity focus |
 
 ### SQL Queries Used
-All queries saved in: `/home/claude/queries/` (to be created)
+All three runnable queries are saved in `queries/` in this repository:
+`extract_propofol_patients.sql`, `extract_propofol_infusions.sql`, and
+`extract_sas_observations.sql`. The operator reports that the three CSV extracts
+were freshly pulled from BigQuery on 2026-10-07 using these committed queries.
+Re-extraction is reproducible for credentialed MIMIC-IV v3.1 users. Job IDs for
+the 2026-10-07 refresh were not recorded and remain pending.
 
 ---
 
 ## 2. Cohort Selection Criteria
 
-**CORRECTED 2026-09-02** against the recovered BigQuery SQL (extraction date
-2026-04-12). The previous version of this table stated an age filter that was
+**CORRECTED 2026-09-02** against the recovered BigQuery SQL, and re-extracted
+2026-10-07 using those repository queries. The previous version of this table stated an age filter that was
 never applied and a SAS threshold of ≥2 assessments, which matched neither the
 extraction filter (≥15) nor the modeling requirement (≥11).
 
 | Criterion | Value | Justification |
 |-----------|-------|---------------|
 | Age | No filter applied | MIMIC-IV contains adult patients only by construction. Cohort is de facto adult (observed range 18–93), but no `age >= 18` predicate exists in any query. Do not describe one. |
-| Propofol administration | ≥5 infusion events, rate > 0 | Extraction filter. Biases the cohort toward sustained infusions; state this as a selection effect. |
-| SAS assessments | ≥15 per ICU stay | Extraction filter (itemid 223753), valuenum restricted to 1–7. |
+| Propofol administration | ≥5 infusion events, itemid 222168, rate > 0 | Extraction filter. Biases the cohort toward sustained infusions; state this as a selection effect. |
+| SAS assessments | ≥15 per ICU stay | Extraction filter (itemid 223753), `valuenum` restricted to 1–7. |
 | SAS assessments (modeling) | ≥11 per ICU stay | Separate downstream requirement in `01_build_features.py` (10 history steps + 1 prediction target). Never binds, since the extraction filter already demands 15. **Not** the cohort inclusion criterion. |
-| Simulation window | First 72 h after first propofol event | Acts as an observation filter, not just a solver setting: discards 55.0% of extracted SAS observations recorded after the window and 7.9% recorded before the first infusion. |
+| Simulation window | First 72 h after first propofol event | A second, downstream observation filter, not an SQL inclusion rule: discards 62.9% of extracted SAS observations (55.0% after the window and 7.9% before the first infusion). |
 | ICU stay duration | No explicit filter | |
 | Exclusions | None explicit | No pregnancy or diagnosis-based exclusions were applied. |
 
@@ -45,9 +50,12 @@ Weight and height are `LEFT JOIN`ed from `mimiciv_3_1_derived.first_day_weight`
 and `first_day_height`, so both may be NULL (weight 1.2%, height 26.7% of the
 extract). `01_build_features.py` substitutes 75 kg and 170 cm respectively.
 
-Cohort sizes: 1,490 patients extracted → 1,489 in the analysis dataset. One
-patient (stay_id [stay_id withheld]) yields zero prediction instances because only 4 of
-its 254 SAS observations fall inside the 72-hour window.
+Cohort sizes: 1,490 patients extracted → 1,489 in the analysis dataset →
+30,931 prediction instances. One patient yields zero prediction instances
+because only 4 of its 254 SAS observations fall inside the 72-hour window;
+this patient is silently absent from the instance-level cache. Weight was
+missing for 18/1,490 patients (1.2%) and defaulted to 75 kg; height was missing
+for 398/1,490 (26.7%) and defaulted to 170 cm.
 
 ---
 
@@ -113,7 +121,17 @@ Eleveld DJ, Colin P, Absalom AR, Struys MMRF. Pharmacokinetic–pharmacodynamic 
 | Method | Brent's method (bounded) |
 | Bounds | [0.5, 10.0] μg/mL |
 | Objective | Mean Squared Error between predicted and observed SAS |
-| Minimum observations required | 3 SAS measurements |
+| Calibration observations | First `max(10, floor(n_SAS/2))` ordered SAS observations; only timestamps inside the 72-hour simulated trajectory contribute |
+| Empty effective calibration window | Return population EC50 (3.08 μg/mL) without optimization |
+
+**Zero-observation bug correction (2026-10-07).** Previously, the objective
+divided accumulated squared error by `max(n, 1)`. If no calibration timestamp
+fell within the simulated trajectory, the objective was identically zero and
+bounded `minimize_scalar` returned approximately 9.999995 for 45 patients.
+The fit encoded no patient information. The corrected implementation explicitly
+returns population EC50 for zero usable points. This changes the feature matrix;
+results from the old and corrected caches are distinct analyses and must not be
+combined. See `instructions.txt` Section 11.6 for filenames and run provenance.
 
 ---
 
@@ -248,16 +266,28 @@ Eleveld DJ, Colin P, Absalom AR, Struys MMRF. Pharmacokinetic–pharmacodynamic 
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| Python | 3.12 | Base language |
-| numpy | [version] | Numerical computing |
-| pandas | [version] | Data manipulation |
-| scikit-learn | [version] | ML algorithms |
-| xgboost | [version] | Gradient boosting |
-| tensorflow/keras | [version] | Neural networks |
-| scipy | [version] | Optimization, ODEs |
-| shap | [version] | Explainability |
-| lime | [version] | Explainability |
-| matplotlib | [version] | Visualization |
+| Python | 3.11.9 | Fresh Windows clone, 2026-10-07 |
+| numpy | 2.4.6 | Numerical computing; newer than original 1.26.4 |
+| pandas | 3.0.6 | Data manipulation; newer than original 2.x |
+| scikit-learn | Installed; exact version pending | ML algorithms |
+| xgboost | Installed; exact version pending | Gradient boosting |
+| tensorflow | 2.21.0 | Neural networks |
+| scipy | 1.17 | Optimization, ODEs |
+| shap | Version not recorded for this run | Explainability |
+| lime | Version not recorded for this run | Explainability |
+| matplotlib | Version not recorded for this run | Visualization |
+
+**Reproducibility check, 2026-10-07: PASSED.** On a fresh Windows clone,
+`01_build_features.py` loaded 1,490 patients, 31,235 propofol events, and
+113,536 SAS observations, then reproduced 30,931 instances from 1,489 patients
+and a 9.54 MB cache. The post-fix build completed successfully with 1,490
+processed and zero skipped. These cohort totals matched the original feature
+build despite newer pandas and NumPy versions. Read-back classification of the
+corrected cache found 774 pinned-low, zero pinned-high, 715 numerically
+interior (670 fitted interior plus 45 population EC50 fallbacks at 3.08).
+Previously published model results came from the pre-fix pipeline; the original
+pre-fix pickle was overwritten before it could be preserved in this session.
+A post-fix snapshot is retained locally only. Neither cache is to be committed.
 
 ---
 
@@ -272,6 +302,27 @@ Eleveld DJ, Colin P, Absalom AR, Struys MMRF. Pharmacokinetic–pharmacodynamic 
 - [ ] Negative results reported honestly
 - [ ] Limitations acknowledged
 
+### Three-Arm Capacity Sweep (post-fix cache)
+
+The rerun tests 4, 8, 16, and 32 LSTM units, all five existing feature
+configurations, and ten seeds (42–51) per cell. Architecture and training
+settings match `src/02b_run_capacity_sweep.py`: 50 epochs, batch size 64,
+validation split 0.15, and an 80/20 patient-level train/test split with
+`random_state=42`.
+
+| Arm | Cohort | Purpose |
+|-----|--------|---------|
+| A | Full corrected cohort | Reference population |
+| B | Interior EC50 patients only | Tests feature benefit after removing boundary-pinned calibration values |
+| C | Seed-42 random sample from the full cohort, matched to B's patient count | Controls for reduced sample size, isolating EC50 composition from dataset-size effects |
+
+Arm C is essential: comparing B only with A would confound EC50-based patient
+selection with the reduced number of training patients. The primary contrast
+is Pure ML versus Full Hybrid degradation at each capacity in B compared with
+the same contrast in C. Results, Spearman monotonicity, and exponential decay
+fit are pending until all 600 runs complete. Do not report estimates before
+then.
+
 ---
 
 ## 10. Version History
@@ -279,4 +330,4 @@ Eleveld DJ, Colin P, Absalom AR, Struys MMRF. Pharmacokinetic–pharmacodynamic 
 | Date | Change | Author |
 |------|--------|--------|
 | 2026-04-19 | Initial creation | Chris Morris |
-| | | |
+| 2026-10-07 | Fresh BigQuery extracts, corrected cohort/provenance details, EC50 empty-window fallback, environment and three-arm capacity design | Chris Morris |

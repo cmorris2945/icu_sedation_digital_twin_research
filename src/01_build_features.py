@@ -40,6 +40,8 @@ import os
 import sys
 warnings.filterwarnings('ignore')
 
+from lib.ec50_calibration import calibrate_ec50
+
 # Paths and configuration
 DATA_DIR = 'data'
 PATIENTS_FILE = os.path.join(DATA_DIR, 'kidney_subgroups_patients.csv')
@@ -257,25 +259,9 @@ for patient_count, patient_id in enumerate(sampled_patient_ids, 1):
     n_obs = len(pat_sas)
     n_calib = max(SEQUENCE_LENGTH, n_obs // 2)
     
-    def ec50_loss(ec50_candidate):
-        """Mean squared error of mechanistic prediction at calibration points."""
-        loss = 0
-        n = 0
-        for i in range(n_calib):
-            t_idx = sas_times_min[i]
-            if 0 <= t_idx < len(Ce_traj):
-                pred = sigmoid_emax(Ce_traj[t_idx], ec50_candidate,
-                                    ELEVELD_PARAMS['gamma'],
-                                    ELEVELD_PARAMS['E0'], ELEVELD_PARAMS['Emax'])
-                loss += (pred - sas_values[i]) ** 2
-                n += 1
-        return loss / max(n, 1)
-    
-    try:
-        result = minimize_scalar(ec50_loss, bounds=(0.5, 10.0), method='bounded')
-        ec50_calibrated = result.x
-    except Exception:
-        ec50_calibrated = ELEVELD_PARAMS['EC50_pop']
+    ec50_calibrated = calibrate_ec50(
+        sas_times_min, sas_values, n_calib, Ce_traj, ELEVELD_PARAMS
+    )
     
     # Build prediction instances. Each instance represents one moment where we
     # want to predict the next SAS score given the recent history.
