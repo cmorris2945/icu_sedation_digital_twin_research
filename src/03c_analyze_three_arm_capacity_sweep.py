@@ -35,6 +35,10 @@ def main():
             return 1
 
         results = pd.read_csv(results_file)
+        results = results.drop_duplicates(
+            subset=['arm', 'algorithm', 'configuration', 'seed', 'lstm_units'],
+            keep='last',
+        )
         expected_per_cell = 10
         coverage = results.groupby(['lstm_units', 'configuration']).size()
         incomplete = coverage[coverage != expected_per_cell]
@@ -81,6 +85,26 @@ def main():
         summary.to_csv(summary_file, index=False)
         all_summaries.append(summary)
 
+        degradation_table = summary.pivot(
+            index='lstm_units', columns='configuration', values='degradation_pct'
+        ).reindex(columns=CONFIGURATIONS)
+        degradation_sd = summary.pivot(
+            index='lstm_units', columns='configuration',
+            values='degradation_std_pct'
+        ).reindex(columns=CONFIGURATIONS)
+        formatted_table = degradation_table.copy().astype(object)
+        for units in degradation_table.index:
+            for config in CONFIGURATIONS:
+                if config == 'FULL_HYBRID':
+                    formatted_table.loc[units, config] = 'baseline'
+                else:
+                    formatted_table.loc[units, config] = (
+                        f"{degradation_table.loc[units, config]:+.2f}% +/- "
+                        f"{degradation_sd.loc[units, config]:.2f}%"
+                    )
+        print(f"\n{arm}: degradation from Full Hybrid (% MAE change, mean +/- SD)")
+        print(formatted_table.to_string())
+
         pure = (summary[summary['configuration'] == 'PURE_ML']
                 .sort_values('lstm_units'))
         for _, row in pure.iterrows():
@@ -108,6 +132,7 @@ def main():
                     units,
                     degradation,
                     p0=(degradation[0] - degradation[-1], 0.1, degradation[-1]),
+                    bounds=([-np.inf, 0.0, -np.inf], [np.inf, np.inf, np.inf]),
                     maxfev=20000,
                 )
             fitted = exponential_decay(units, *params)

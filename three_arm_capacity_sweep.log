@@ -1,0 +1,720 @@
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-07 20:17:26
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[20:17:36] units=4 config=FULL_HYBRID
+   seed=42: MAE=0.4010, R²=0.5950
+   seed=43: MAE=0.3946, R²=0.6019
+   seed=44: MAE=0.3406, R²=0.6196
+   seed=45: MAE=0.3610, R²=0.6131
+   seed=46: MAE=0.3683, R²=0.6168
+   seed=47: MAE=0.3909, R²=0.6017
+   seed=48: MAE=0.3914, R²=0.6053
+   seed=49: MAE=0.3554, R²=0.6181
+   seed=50: MAE=0.3613, R²=0.6131
+   seed=51: MAE=0.3997, R²=0.6017
+[22:26:43] units=4 config=NO_TEMPORAL
+   seed=42: MAE=0.3525, R²=0.6078
+   seed=43: MAE=0.3641, R²=0.6034
+   seed=44: MAE=0.3371, R²=0.6208
+   seed=45: MAE=0.3512, R²=0.6104
+   seed=46: MAE=0.3510, R²=0.6160
+   seed=47: MAE=0.4130, R²=0.5870
+   seed=48: MAE=0.3788, R²=0.6109
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-07 23:53:34
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 17 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[23:53:40] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[23:53:40] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: MAE=0.3687, R²=0.6141
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-08 00:03:20
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 18 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[00:03:21] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[00:03:21] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: MAE=0.3872, R²=0.6065
+   seed=50: MAE=0.3633, R²=0.6039
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-08 00:12:27
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 19 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[00:12:30] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[00:12:31] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-08 00:12:33
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 19 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[00:12:35] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[00:12:35] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: MAE=0.3650, R²=0.6094
+[00:23:42] units=4 config=NO_STATIC_MECH
+   seed=51: MAE=0.3605, R²=0.6144
+[00:23:49] units=4 config=NO_STATIC_MECH
+   seed=51: MAE=0.3302, R²=0.6180
+[00:24:42] units=4 config=NO_STATIC_MECH
+   seed=42: MAE=0.3810, R²=0.6081
+   seed=42: MAE=0.5832, R²=0.3818
+   seed=42: MAE=0.3783, R²=0.6050
+   seed=43: MAE=0.3624, R²=0.6127
+   seed=43: MAE=0.3600, R²=0.6077
+   seed=43: MAE=0.3623, R²=0.6114
+   seed=44: MAE=0.3435, R²=0.6201
+   seed=44: MAE=0.3517, R²=0.6176
+   seed=44: MAE=0.3454, R²=0.6191
+   seed=45: MAE=0.3778, R²=0.5981
+   seed=45: MAE=0.3496, R²=0.6116
+   seed=45: MAE=0.3543, R²=0.6034
+   seed=46: MAE=0.3532, R²=0.6159
+   seed=46: MAE=0.3481, R²=0.6199
+   seed=46: MAE=0.3551, R²=0.6201
+   seed=47: MAE=0.3476, R²=0.6134
+   seed=47: MAE=0.3313, R²=0.6230
+   seed=47: MAE=0.3381, R²=0.6225
+   seed=48: MAE=0.3828, R²=0.6109
+   seed=48: MAE=0.3659, R²=0.6124
+   seed=48: MAE=0.3527, R²=0.6131
+   seed=49: MAE=0.3373, R²=0.6228
+   seed=49: MAE=0.3402, R²=0.6170
+   seed=49: MAE=0.3527, R²=0.6177
+   seed=50: MAE=0.3616, R²=0.6091
+   seed=50: MAE=0.3583, R²=0.6153
+   seed=50: MAE=0.3971, R²=0.6044
+   seed=51: MAE=0.3509, R²=0.6167
+[02:07:33] units=4 config=PURE_ML
+   seed=51: MAE=0.3601, R²=0.6132
+[02:08:41] units=4 config=PURE_ML
+   seed=51: MAE=0.3690, R²=0.6177
+[02:09:33] units=4 config=PURE_ML
+   seed=42: MAE=0.3670, R²=0.6060
+   seed=42: MAE=0.3891, R²=0.5963
+   seed=42: MAE=0.4074, R²=0.5911
+   seed=43: MAE=0.4668, R²=0.5279
+   seed=43: MAE=0.3420, R²=0.6108
+   seed=43: MAE=0.3737, R²=0.6026
+   seed=44: MAE=0.3537, R²=0.6117
+   seed=44: MAE=0.3508, R²=0.6136
+   seed=44: MAE=0.3481, R²=0.6131
+   seed=45: MAE=0.4399, R²=0.5640
+   seed=45: MAE=0.3953, R²=0.5942
+   seed=45: MAE=0.3550, R²=0.6065
+   seed=46: MAE=0.3651, R²=0.6070
+   seed=46: MAE=0.3394, R²=0.6150
+   seed=46: MAE=0.3659, R²=0.6084
+   seed=47: MAE=0.3619, R²=0.6035
+   seed=47: MAE=0.3540, R²=0.6078
+   seed=47: MAE=0.3668, R²=0.6091
+   seed=48: MAE=0.3621, R²=0.5994
+   seed=48: MAE=0.3750, R²=0.6010
+   seed=48: MAE=0.3789, R²=0.5827
+   seed=49: MAE=0.3544, R²=0.6150
+   seed=49: MAE=0.4022, R²=0.5983
+   seed=49: MAE=0.3730, R²=0.6053
+   seed=50: MAE=0.3579, R²=0.6061
+   seed=50: MAE=0.3570, R²=0.6092
+   seed=50: MAE=0.3849, R²=0.6025
+   seed=51: MAE=0.3721, R²=0.6040
+[03:46:04] units=4 config=ONLY_MECH
+   seed=51: MAE=0.3786, R²=0.5981
+[03:46:23] units=4 config=ONLY_MECH
+   seed=51: MAE=0.3856, R²=0.6060
+[03:47:42] units=4 config=ONLY_MECH
+   seed=42: MAE=0.4173, R²=0.5746
+   seed=42: MAE=0.3759, R²=0.6045
+   seed=42: MAE=0.3446, R²=0.6105
+   seed=43: MAE=0.3455, R²=0.6141
+   seed=43: MAE=0.3694, R²=0.6099
+   seed=43: MAE=0.3544, R²=0.6078
+   seed=44: MAE=0.3324, R²=0.6144
+   seed=44: MAE=0.3360, R²=0.6156
+   seed=44: MAE=0.4146, R²=0.5628
+   seed=45: MAE=0.3553, R²=0.6141
+   seed=45: MAE=0.3857, R²=0.5925
+   seed=45: MAE=0.3572, R²=0.6105
+   seed=46: MAE=0.3635, R²=0.6078
+   seed=46: MAE=0.3366, R²=0.6195
+   seed=46: MAE=0.3428, R²=0.6160
+   seed=47: MAE=0.3444, R²=0.6154
+   seed=47: MAE=0.3371, R²=0.6140
+   seed=47: MAE=0.3451, R²=0.6176
+   seed=48: MAE=0.3743, R²=0.5938
+   seed=48: MAE=0.3466, R²=0.6171
+   seed=48: MAE=0.3623, R²=0.6067
+   seed=49: MAE=0.3311, R²=0.6169
+   seed=49: MAE=0.3285, R²=0.6191
+   seed=49: MAE=0.3568, R²=0.6117
+   seed=50: MAE=0.3585, R²=0.6101
+   seed=50: MAE=0.3748, R²=0.6073
+   seed=50: MAE=0.3434, R²=0.6152
+   seed=51: MAE=0.3480, R²=0.6090
+LSTM_UNITS = 8
+[05:52:53] units=8 config=FULL_HYBRID
+   seed=51: MAE=0.3480, R²=0.6157
+LSTM_UNITS = 8
+[05:53:18] units=8 config=FULL_HYBRID
+   seed=51: MAE=0.3623, R²=0.5998
+LSTM_UNITS = 8
+[05:57:07] units=8 config=FULL_HYBRID
+   seed=42: MAE=0.3671, R²=0.6108
+   seed=42: MAE=0.3704, R²=0.6171
+   seed=42: MAE=0.3751, R²=0.6151
+   seed=43: MAE=0.4251, R²=0.5806
+   seed=43: MAE=0.3909, R²=0.6060
+   seed=43: MAE=0.3532, R²=0.6178
+   seed=44: MAE=0.3403, R²=0.6197
+   seed=44: MAE=0.4804, R²=0.5087
+   seed=44: MAE=0.3435, R²=0.6208
+   seed=45: MAE=0.3417, R²=0.6210
+   seed=45: MAE=0.4240, R²=0.5827
+   seed=45: MAE=0.3890, R²=0.6067
+   seed=46: MAE=0.3900, R²=0.5985
+   seed=46: MAE=0.4307, R²=0.5680
+   seed=46: MAE=0.3839, R²=0.6100
+   seed=47: MAE=0.3430, R²=0.6176
+   seed=47: MAE=0.3596, R²=0.6171
+   seed=47: MAE=0.3528, R²=0.6153
+   seed=48: MAE=0.3613, R²=0.6138
+   seed=48: MAE=0.3592, R²=0.6103
+   seed=48: MAE=0.3801, R²=0.6057
+   seed=49: MAE=0.4114, R²=0.5966
+   seed=49: MAE=0.3404, R²=0.6240
+   seed=49: MAE=0.3999, R²=0.6010
+   seed=50: MAE=0.4288, R²=0.5805
+   seed=50: MAE=0.3664, R²=0.6169
+   seed=50: MAE=0.3508, R²=0.6215
+   seed=51: MAE=0.3689, R²=0.6173
+[07:24:20] units=8 config=NO_TEMPORAL
+   seed=51: MAE=0.3686, R²=0.6156
+[07:25:48] units=8 config=NO_TEMPORAL
+   seed=51: MAE=0.3492, R²=0.6162
+[07:34:46] units=8 config=NO_TEMPORAL
+   seed=42: MAE=0.3494, R²=0.6169
+   seed=42: MAE=0.3451, R²=0.6144
+   seed=43: MAE=0.3651, R²=0.6128
+   seed=42: MAE=0.3473, R²=0.6142
+   seed=43: MAE=0.3573, R²=0.6163
+   seed=44: MAE=0.3606, R²=0.6161
+   seed=43: MAE=0.3708, R²=0.6092
+   seed=44: MAE=0.3284, R²=0.6220
+   seed=45: MAE=0.3601, R²=0.6017
+   seed=44: MAE=0.3711, R²=0.6110
+   seed=45: MAE=0.3846, R²=0.6056
+   seed=46: MAE=0.4025, R²=0.5987
+   seed=45: MAE=0.3622, R²=0.6035
+   seed=46: MAE=0.3856, R²=0.6027
+   seed=46: MAE=0.3862, R²=0.6058
+   seed=47: MAE=0.3478, R²=0.6154
+   seed=47: MAE=0.3722, R²=0.6098
+   seed=47: MAE=0.3526, R²=0.6104
+   seed=48: MAE=0.3817, R²=0.6046
+   seed=48: MAE=0.4300, R²=0.5784
+   seed=49: MAE=0.3514, R²=0.6152
+   seed=48: MAE=0.3900, R²=0.6009
+   seed=49: MAE=0.3582, R²=0.6137
+   seed=50: MAE=0.3855, R²=0.5997
+   seed=49: MAE=0.3777, R²=0.6060
+   seed=50: MAE=0.3665, R²=0.6101
+   seed=51: MAE=0.3569, R²=0.6123
+[09:14:05] units=8 config=NO_STATIC_MECH
+   seed=50: MAE=0.3943, R²=0.6027
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-08 10:00:01
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 70 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[10:00:15] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:15] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:15] units=4 config=NO_STATIC_MECH
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:15] units=4 config=PURE_ML
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:15] units=4 config=ONLY_MECH
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+LSTM_UNITS = 8
+[10:00:15] units=8 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:16] units=8 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[10:00:16] units=8 config=NO_STATIC_MECH
+   seed=42: MAE=0.3427, R²=0.6152
+   seed=43: MAE=0.3491, R²=0.6148
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-08 11:36:56
+Log file: three_arm_capacity_sweep.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Running 3 arm(s), 600 LSTM trainings total
+
+Found 72 completed runs in capacity_sweep_arm_a_full_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_results.csv
+LSTM_UNITS = 4
+[11:37:13] units=4 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:13] units=4 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:14] units=4 config=NO_STATIC_MECH
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:15] units=4 config=PURE_ML
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:15] units=4 config=ONLY_MECH
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+LSTM_UNITS = 8
+[11:37:15] units=8 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:15] units=8 config=NO_TEMPORAL
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: already done, skipping
+   seed=49: already done, skipping
+   seed=50: already done, skipping
+   seed=51: already done, skipping
+[11:37:16] units=8 config=NO_STATIC_MECH
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: MAE=0.3411, R²=0.6224
+   seed=45: MAE=0.3848, R²=0.5993
+   seed=46: MAE=0.3823, R²=0.6086
+   seed=47: MAE=0.3549, R²=0.6143
+   seed=48: MAE=0.3678, R²=0.6063
+   seed=49: MAE=0.3905, R²=0.6063
+   seed=50: MAE=0.3398, R²=0.6238
+   seed=51: MAE=0.3458, R²=0.6236
+[12:42:06] units=8 config=PURE_ML
+   seed=42: MAE=0.3944, R²=0.5982
+   seed=43: MAE=0.3631, R²=0.6069
+   seed=44: MAE=0.3753, R²=0.6095
+   seed=45: MAE=0.3765, R²=0.5972
+   seed=46: MAE=0.3624, R²=0.6061
+   seed=47: MAE=0.3692, R²=0.6011
+   seed=48: MAE=0.3975, R²=0.5966
+   seed=49: MAE=0.3818, R²=0.6010
+   seed=50: MAE=0.3771, R²=0.6101
+   seed=51: MAE=0.3658, R²=0.6074
+[13:45:16] units=8 config=ONLY_MECH
+   seed=42: MAE=0.3771, R²=0.6049
+   seed=43: MAE=0.3468, R²=0.6183
+   seed=44: MAE=0.3312, R²=0.6213
+   seed=45: MAE=0.3642, R²=0.6121
+   seed=46: MAE=0.4102, R²=0.5838
+   seed=47: MAE=0.3385, R²=0.6159
+   seed=48: MAE=0.3940, R²=0.6082
+   seed=49: MAE=0.3485, R²=0.6176
+   seed=50: MAE=0.3847, R²=0.6041
+   seed=51: MAE=0.3391, R²=0.6192
+LSTM_UNITS = 16
+[14:47:50] units=16 config=FULL_HYBRID
+   seed=42: MAE=0.3350, R²=0.6256
+   seed=43: MAE=0.3663, R²=0.6133
+   seed=44: MAE=0.3598, R²=0.6187
+   seed=45: MAE=0.4115, R²=0.5844
+   seed=46: MAE=0.3917, R²=0.6048
+   seed=47: MAE=0.3740, R²=0.6167
+   seed=48: MAE=0.3546, R²=0.6231
+   seed=49: MAE=0.3906, R²=0.6059
+   seed=50: MAE=0.3683, R²=0.6134
+   seed=51: MAE=0.3671, R²=0.6135
+[15:55:24] units=16 config=NO_TEMPORAL
+   seed=42: MAE=0.3581, R²=0.6141
+   seed=43: MAE=0.3581, R²=0.6173
+   seed=44: MAE=0.4029, R²=0.5868
+   seed=45: MAE=0.4513, R²=0.5534
+   seed=46: MAE=0.3785, R²=0.6120
+   seed=47: MAE=0.3473, R²=0.6198
+   seed=48: MAE=0.3845, R²=0.6104
+   seed=49: MAE=0.3307, R²=0.6227
+   seed=50: MAE=0.4249, R²=0.5844
+   seed=51: MAE=0.3841, R²=0.6076
+[17:00:51] units=16 config=NO_STATIC_MECH
+   seed=42: MAE=0.4222, R²=0.5784
+   seed=43: MAE=0.3919, R²=0.6037
+   seed=44: MAE=0.3386, R²=0.6252
+   seed=45: MAE=0.3679, R²=0.6116
+   seed=46: MAE=0.3827, R²=0.6089
+   seed=47: MAE=0.3991, R²=0.5997
+   seed=48: MAE=0.4161, R²=0.5885
+   seed=49: MAE=0.3906, R²=0.6063
+   seed=50: MAE=0.3584, R²=0.6149
+   seed=51: MAE=0.3560, R²=0.6205
+[18:06:55] units=16 config=PURE_ML
+   seed=42: MAE=0.3918, R²=0.6003
+   seed=43: MAE=0.3893, R²=0.5981
+   seed=44: MAE=0.3543, R²=0.6110
+   seed=45: MAE=0.4352, R²=0.5719
+   seed=46: MAE=0.4453, R²=0.5549
+   seed=47: MAE=0.3635, R²=0.6039
+   seed=48: MAE=0.3713, R²=0.6060
+   seed=49: MAE=0.3709, R²=0.6115
+   seed=50: MAE=0.3864, R²=0.6026
+   seed=51: MAE=0.4117, R²=0.5895
+[19:13:06] units=16 config=ONLY_MECH
+   seed=42: MAE=0.3642, R²=0.6088
+   seed=43: MAE=0.4086, R²=0.5732
+   seed=44: MAE=0.3290, R²=0.6255
+   seed=45: MAE=0.3664, R²=0.6130
+   seed=46: MAE=0.4079, R²=0.5836
+   seed=47: MAE=0.4241, R²=0.5771
+   seed=48: MAE=0.3942, R²=0.6008
+   seed=49: MAE=0.3748, R²=0.6083
+   seed=50: MAE=0.3767, R²=0.6122
+   seed=51: MAE=0.3898, R²=0.5984
+LSTM_UNITS = 32
+[20:20:27] units=32 config=FULL_HYBRID
+   seed=42: MAE=0.3651, R²=0.6183
+   seed=43: MAE=0.3997, R²=0.6021
+   seed=44: MAE=0.3719, R²=0.6133
+   seed=45: MAE=0.5327, R²=0.4452
+   seed=46: MAE=0.4001, R²=0.6017
+   seed=47: MAE=0.4005, R²=0.5926
+   seed=48: MAE=0.3632, R²=0.6218
+   seed=49: MAE=0.4257, R²=0.5651
+   seed=50: MAE=0.3752, R²=0.6103
+   seed=51: MAE=0.3971, R²=0.6043
+[21:31:28] units=32 config=NO_TEMPORAL
+   seed=42: MAE=0.4356, R²=0.5732
+   seed=43: MAE=0.3734, R²=0.6110
+   seed=44: MAE=0.3872, R²=0.5994
+   seed=45: MAE=0.4702, R²=0.5217
+   seed=46: MAE=0.3917, R²=0.5980

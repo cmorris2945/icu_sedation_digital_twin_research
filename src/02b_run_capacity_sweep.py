@@ -83,6 +83,8 @@ EC50_TOL = 1e-3
 
 parser = argparse.ArgumentParser(description='Run the three-arm capacity sweep.')
 parser.add_argument('--arm', choices=['all', *RESULTS_FILES], default='all')
+parser.add_argument('--config', nargs='+', default=None,
+                    help='Configuration(s) to run; defaults to all.')
 ARGS = parser.parse_args()
 
 LOG_FILE = 'three_arm_capacity_sweep.log'
@@ -204,13 +206,26 @@ CONFIGS = {
     },
 }
 
+if ARGS.config:
+    unknown_configs = sorted(set(ARGS.config) - set(CONFIGS))
+    if unknown_configs:
+        parser.error(f"unknown configuration(s): {', '.join(unknown_configs)}")
+configurations_to_run = [
+    (name, config) for name, config in CONFIGS.items()
+    if ARGS.config is None or name in ARGS.config
+]
+
 
 def save_result(result, results_file):
-    """Append a single result to the output CSV. Incremental write so partial
-    progress is preserved if the script is interrupted."""
+    """Append a single result to the output CSV while preventing accidental
+    duplicate rows from repeated resume attempts or interrupted reruns."""
+    key_cols = ['arm', 'algorithm', 'configuration', 'seed', 'lstm_units']
     df_row = pd.DataFrame([result])
     if os.path.exists(results_file):
-        df_row.to_csv(results_file, mode='a', header=False, index=False)
+        existing = pd.read_csv(results_file)
+        combined = pd.concat([existing, df_row], ignore_index=True)
+        deduped = combined.drop_duplicates(subset=key_cols, keep='last')
+        deduped.to_csv(results_file, index=False)
     else:
         df_row.to_csv(results_file, index=False)
 
@@ -300,8 +315,9 @@ ARM_LABELS = {
     'matched': 'C: size-matched random full-cohort sample',
 }
 arms_to_run = list(RESULTS_FILES) if ARGS.arm == 'all' else [ARGS.arm]
-total_runs = len(arms_to_run) * len(LSTM_UNITS_LIST) * len(CONFIGS) * N_SEEDS
-print(f"\nRunning {len(arms_to_run)} arm(s), {total_runs} LSTM trainings total")
+total_runs = len(arms_to_run) * len(LSTM_UNITS_LIST) * len(configurations_to_run) * N_SEEDS
+print(f"\nConfigurations: {', '.join(name for name, _ in configurations_to_run)}")
+print(f"Running {len(arms_to_run)} arm(s), {total_runs} LSTM trainings total")
 print()
 
 n_done_now = 0
@@ -333,7 +349,7 @@ for arm in arms_to_run:
 
     for lstm_units in LSTM_UNITS_LIST:
         print(f"LSTM_UNITS = {lstm_units}")
-        for config_name, config in CONFIGS.items():
+        for config_name, config in configurations_to_run:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] units={lstm_units} "
                   f"config={config_name}")
             for seed_offset in range(N_SEEDS):
