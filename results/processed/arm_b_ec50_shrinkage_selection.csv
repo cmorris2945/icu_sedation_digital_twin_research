@@ -1,0 +1,11 @@
+shrinkage_weight,train_patient_cv_mae,n_train_patients,selection_data,selected
+0.0,0.32540091189376336,572,"Arm B training patients; each patient first-half fit, second-half score",False
+0.01,0.32518486687570863,572,"Arm B training patients; each patient first-half fit, second-half score",False
+0.03,0.32512189398026015,572,"Arm B training patients; each patient first-half fit, second-half score",False
+0.1,0.3243649061380315,572,"Arm B training patients; each patient first-half fit, second-half score",False
+0.3,0.3235293607364109,572,"Arm B training patients; each patient first-half fit, second-half score",True
+1.0,0.32413264513807943,572,"Arm B training patients; each patient first-half fit, second-half score",False
+3.0,0.32816787697707184,572,"Arm B training patients; each patient first-half fit, second-half score",False
+10.0,0.33517257518171223,572,"Arm B training patients; each patient first-half fit, second-half score",False
+30.0,0.3372346627953428,572,"Arm B training patients; each patient first-half fit, second-half score",False
+100.0,0.3378996026110837,572,"Arm B training patients; each patient first-half fit, second-half score",False

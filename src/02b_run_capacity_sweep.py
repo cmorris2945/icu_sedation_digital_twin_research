@@ -85,6 +85,9 @@ parser = argparse.ArgumentParser(description='Run the three-arm capacity sweep.'
 parser.add_argument('--arm', choices=['all', *RESULTS_FILES], default='all')
 parser.add_argument('--config', nargs='+', default=None,
                     help='Configuration(s) to run; defaults to all.')
+parser.add_argument('--units', nargs='+', type=int, choices=[4, 8, 16, 32],
+                    default=None,
+                    help='LSTM unit size(s) to run; defaults to all sizes.')
 ARGS = parser.parse_args()
 
 LOG_FILE = 'three_arm_capacity_sweep.log'
@@ -315,7 +318,8 @@ ARM_LABELS = {
     'matched': 'C: size-matched random full-cohort sample',
 }
 arms_to_run = list(RESULTS_FILES) if ARGS.arm == 'all' else [ARGS.arm]
-total_runs = len(arms_to_run) * len(LSTM_UNITS_LIST) * len(configurations_to_run) * N_SEEDS
+units_to_run = ARGS.units if ARGS.units is not None else LSTM_UNITS_LIST
+total_runs = len(arms_to_run) * len(units_to_run) * len(configurations_to_run) * N_SEEDS
 print(f"\nConfigurations: {', '.join(name for name, _ in configurations_to_run)}")
 print(f"Running {len(arms_to_run)} arm(s), {total_runs} LSTM trainings total")
 print()
@@ -347,7 +351,7 @@ for arm in arms_to_run:
           f"({len(test_df)} instances)")
     print(f"   Results: {results_file}")
 
-    for lstm_units in LSTM_UNITS_LIST:
+    for lstm_units in units_to_run:
         print(f"LSTM_UNITS = {lstm_units}")
         for config_name, config in configurations_to_run:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] units={lstm_units} "

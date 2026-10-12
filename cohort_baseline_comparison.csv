@@ -3,4 +3,4 @@ persistence (predict sas_last),False,0.2866,0.2769
 window mean (predict sas_mean),False,0.4699,
 global train mean,False,0.7316,
 "LSTM FULL_HYBRID 4 units (this run, 10-seed mean)",True,,0.3395
-LSTM FULL_HYBRID 4 units (published capacity sweep),True,0.3514,
+LSTM FULL_HYBRID 4 units (published capacity sweep),True,0.37643773138551,

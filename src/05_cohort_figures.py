@@ -95,8 +95,31 @@ SEQUENCE_LENGTH = 10
 LSTM_UNITS = 4          # best configuration in the capacity sweep
 FIXED_EPOCHS = 50
 N_SEEDS = 10
-SWEEP_REFERENCE_MAE = 0.3514    # capacity_sweep_summary.csv, units=4 FULL_HYBRID
-SWEEP_REFERENCE_SD = 0.0175
+
+
+def load_sweep_reference():
+    """Read the current 4-unit FULL_HYBRID reference from the post-fix summary."""
+    table_path = os.path.join('results', 'processed', 'capacity_summary_table.csv')
+    if not os.path.exists(table_path):
+        raise FileNotFoundError(
+            f"Missing post-fix sweep reference: {table_path}. "
+            'Rebuild the processed capacity summary before running cohort figures.'
+        )
+
+    summary = pd.read_csv(table_path)
+    row = summary[
+        (summary['arm'] == 'full')
+        & (summary['lstm_units'] == 4)
+        & (summary['configuration'] == 'FULL_HYBRID')
+    ]
+    if row.empty:
+        raise ValueError(
+            'No post-fix FULL_HYBRID 4-unit row found in results/processed/capacity_summary_table.csv.'
+        )
+    return float(row.iloc[0]['mae_mean']), float(row.iloc[0]['mae_sd'])
+
+
+SWEEP_REFERENCE_MAE, SWEEP_REFERENCE_SD = load_sweep_reference()
 
 # Single hue for magnitude, second hue only for the imputed-value overlay.
 # Both drawn from the Wong palette in lib/publication_plots.py and checked

@@ -1,0 +1,2 @@
+e0,e0_ci_lower,e0_ci_upper,emax,emax_ci_lower,emax_ci_upper,n_train_instances,n_train_patients,ci_method,interpretation
+3.7355876672616484,3.6811435533596297,3.790031781163667,1.4698227816960685,1.2024625695276445,1.7371829938644925,24522,1191,95% t intervals; CR1 cluster-robust covariance by stay_id,"E0 and Emax are scale-calibration parameters fitted to this cohort’s SAS charting, not pharmacological estimates."
