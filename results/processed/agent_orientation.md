@@ -1,209 +1,434 @@
-﻿# Agent orientation report
-
-## Working directory and confirmation
-
-Working directory:
-C:\Users\chris' pc\icu-sedation-research\icu_sedation_digital_twin_research
-
-Confirmed: src/02b_run_capacity_sweep.py exists in this directory: YES
-
-This is the active nested repo. The outer folder one level up is a stale duplicate/workspace snapshot and is not the live project root.
-
----
-
-## 1) Pipeline in order: what runs when, what each script reads, and what each writes
-
-1. src/01_build_features.py
-   - Reads: data/kidney_subgroups_patients.csv, data/kidney_subgroups_propofol.csv, data/kidney_subgroups_sas.csv
-   - Writes: cached_features.pkl
-   - Purpose: run the Eleveld PK/PD simulation, calibrate each patient's EC50, build prediction instances, and create the feature cache used by all downstream analysis.
-
-2. src/02_run_ablation.py
-   - Reads: cached_features.pkl
-   - Writes: ablation_results.csv
-   - Purpose: 5 feature configurations x (1 XGBoost + 10 LSTM seeds) at 16 LSTM units.
-
-3. src/03_analyze_results.py
-   - Reads: ablation_results.csv
-   - Writes: summary_statistics.csv, degradation_analysis.csv
-   - Purpose: compute per-configuration MAE summaries and degradation percentages relative to FULL_HYBRID.
-
-4. src/04_make_figures.py
-   - Reads: degradation_analysis.csv (legacy path)
-   - Writes: figures/ablation_main.{png,pdf}, figures/absolute_mae.{png,pdf}
-   - Purpose: produce the older 16-unit ablation figures. This is not the active capacity-sweep figure stream.
-
-5. src/02b_run_capacity_sweep.py
-   - Reads: cached_features.pkl
-   - Writes: capacity_sweep_arm_a_full_results.csv, capacity_sweep_arm_b_interior_results.csv, capacity_sweep_arm_c_matched_results.csv, three_arm_cohort_counts.csv, three_arm_capacity_sweep.log
-   - Purpose: 4 LSTM sizes (4, 8, 16, 32) x 5 configurations x 10 seeds across three study arms.
-
-6. src/03b_analyze_capacity_sweep.py
-   - Reads: capacity_sweep_results.csv (legacy single-file sweep output)
-   - Writes: capacity_sweep_summary.csv
-   - Purpose: aggregate the older single-file capacity sweep into a per-size summary. This is a legacy path, not the active three-arm analysis.
-
-7. src/04b_plot_capacity_sweep.py
-   - Reads: capacity_sweep_summary.csv
-   - Writes: figures/capacity_sweep_main.{png,pdf}, figures/capacity_heatmap.{png,pdf}
-   - Purpose: generate the older capacity-sweep figures from the single-file summary.
-
-8. src/03c_analyze_three_arm_capacity_sweep.py
-   - Reads: capacity_sweep_arm_a_full_results.csv, capacity_sweep_arm_b_interior_results.csv, capacity_sweep_arm_c_matched_results.csv
-   - Writes: three_arm_capacity_summary.csv, three_arm_pure_ml_comparison.csv, three_arm_capacity_trend_stats.csv
-   - Purpose: compare the three arms directly and compute Spearman and exponential-decay trend summaries.
-
-9. src/compute_capacity_summary.py
-   - Reads: capacity_sweep_arm_a_full_results.csv, capacity_sweep_arm_b_interior_results.csv, capacity_sweep_arm_c_matched_results.csv
-   - Writes: results/processed/capacity_summary_table.csv, results/processed/capacity_summary.md
-   - Purpose: produce the processed summary used by the current post-fix analysis.
-
-10. src/05_cohort_figures.py
-    - Reads: cached_features.pkl, data/kidney_subgroups_patients.csv
-    - Writes: cohort_table1.csv, cohort_correlations.csv, cohort_per_patient_mae.csv, figures/cohort/*
-    - Purpose: cohort distributions, Table 1, correlations, and per-patient MAE analysis.
-
-11. src/08_ec50_diagnostics.py
-    - Reads: cached_features.pkl
-    - Writes: ec50_diagnostics.csv, ec50_patient_level.csv, figures/cohort/ec50_pinning_diagnostics.{png,pdf}
-    - Purpose: diagnose EC50 boundary pinning and report whether there is a true interior optimum.
-
-12. src/09_ec50_cache_classification.py
-    - Reads: cached_features.pkl
-    - Writes: console summary only
-    - Purpose: summarize how many patients are pinned-low, pinned-high, or interior in the current cache.
-
----
-
-## 2) Current result files vs superseded files
-
-### Current/active post-fix analysis files
-
-The active workflow is built around the corrected EC50 cache and the three-arm sweep outputs:
-
-- capacity_sweep_arm_a_full_results.csv
-- capacity_sweep_arm_b_interior_results.csv
-- capacity_sweep_arm_c_matched_results.csv
-- results/processed/capacity_summary_table.csv
-- results/processed/capacity_summary.md
-- results/processed/baseline_comparison.csv
-- results/processed/baseline_scale_calibration.csv
-- results/processed/arm_b_mechanistic_comparison.csv
-
-These are the files connected to the current fixed workflow and are the ones the active support scripts read.
-
-### Legacy or superseded files
-
-These are historical or legacy artifacts and should not be treated as sources of truth for the fixed-cache analysis:
-
-- capacity_sweep_summary.csv
-- capacity_sweep_results.csv
-- degradation_analysis.csv
-- summary_statistics.csv
-- ablation_results_3seeds.csv
-- docs/paper_draft.tex
-- docs/paper_skeleton.md
-- docs/study_guide_v*.md
-
-### Specific note on the three flagged files
-
-The task calls out three specific files:
-
-- capacity_sweep_summary.csv
-- capacity_sweep_arm_a_full_results.csv
-- degradation_analysis.csv
-
-The first and third are clearly legacy pre-fix/stale artifacts. `capacity_sweep_summary.csv` is the legacy single-file sweep summary from the old 2fa4c4c path. `degradation_analysis.csv` is the legacy 16-unit ablation summary from the pre-fix analysis.
-
-The arm-A file needs a more careful distinction: `capacity_sweep_arm_a_full_results.csv` is not the old single-file `capacity_sweep_results.csv` from the pre-fix branch; it is the Arm A file generated in the corrected three-arm workflow after the EC50 fix. It is therefore part of the current fixed analysis, not part of the stale old root-level sweep summary. That said, it is still not the historical provenance file to use when auditing the pre-fix paper results. It is a corrected-current artifact, not a source of truth for the earlier published result tables.
-
-### Does anything still read the stale files?
-
-Yes. The legacy script reads are still present:
-
-- src/03_analyze_results.py reads `degradation_analysis.csv`
-- src/04_make_figures.py reads `degradation_analysis.csv`
-- src/03b_analyze_capacity_sweep.py reads `capacity_sweep_summary.csv`
-- src/04b_plot_capacity_sweep.py reads `capacity_sweep_summary.csv`
-- src/05_cohort_figures.py still references the old 4-unit FULL_HYBRID value from the legacy capacity-sweep summary (`capacity_sweep_summary.csv`)
-
-So the repo is mixed: active analysis has moved to the corrected three-arm files and processed summaries, but stale legacy readers remain in older scripts and comments.
-
----
-
-## 3) What the three arms are and why the third exists
-
-The three-arm design is implemented in src/02b_run_capacity_sweep.py:
-
-- Arm A: full cohort
-  - Includes all patients in the feature cache.
-  - This is the broadest reference cohort.
-
-- Arm B: interior-only cohort
-  - Includes only patients with numerically interior EC50 values, i.e., not pinned to the optimization bounds.
-  - This isolates the patients with a meaningful, data-driven EC50 estimate.
-
-- Arm C: matched cohort
-  - Randomly sampled without replacement from the full cohort, with size matched to Arm B.
-  - This exists to control for the fact that Arm B has fewer patients; otherwise, differences between A and B might be due simply to smaller sample size rather than the EC50 composition.
-
-This is why the third arm exists: it separates “EC50-interior-only effect” from “smaller-cohort effect.”
-
----
-
-## 4) The EC50 calibration defect, the fix, and why it matters
-
-The defect was diagnosed and fixed in the repo history.
-
-### What the defect was
-
-The calibration loop in src/01_build_features.py used a bounded optimizer over EC50 values in the interval [0.5, 10.0]. If a patient had no usable calibration timestamps inside the simulated 72-hour window, the objective became flat or effectively zero across the candidate set. In that case, the optimizer could terminate at the search boundary instead of producing a meaningful fitted value.
-
-The script then wrote those boundary-returned values into `EC50_calibrated`, even though they were not patient-specific estimates. This made the model look “personalized” when the value was actually a solver artifact.
-
-### Which commit fixed it
-
-The fix is in commit `a60be12`:
-
-- Commit message: `Fix-empty-EC50-calibration-and-document-capacity-sweep`
-- The relevant helper is src/lib/ec50_calibration.py, which returns the population EC50 (`EC50_pop`, 3.08) if there are no usable calibration points.
-- The call site in src/01_build_features.py was updated to use that helper.
-
-The repo also shows a follow-up diagnostic commit: `236d596` (`Diagnose EC50 boundary pinning: two separate non-pharmacological causes`), which explains that the issue was non-pharmacological and separated into two patterns: pinned-low due to low exposure and pinned-high due to an empty calibration objective.
-
-### Why it matters
-
-This matters because the paper’s personalization story is built on the EC50 feature. If the value is not a true patient-specific estimate, then downstream mechanistic features are invalid and any model comparison built on those values is not trustworthy.
-
-The repo explicitly records that the old pre-fix cache and results cannot be pooled with the corrected post-fix cache. That is the root reason the older root-level files are not a source of truth.
-
----
-
-## 5) Contradictions and stale documentation in the repo
-
-The project is currently in a partially inconsistent state. The main contradictions are:
-
-- The repo still contains both legacy ablation outputs and newer three-arm sweep outputs.
-- The original `instructions.txt` notes script inventory discrepancies and states that some files are “not in the repo” even though newer scripts and results are now present.
-- `paper/main.tex` is a generic scaffold and not the 2026-10-11 rewritten manuscript described in the task note.
-- `src/05_cohort_figures.py` still references the legacy 4-unit FULL_HYBRID value from the old summary file.
-- `src/03_analyze_results.py` and `src/04_make_figures.py` still use the legacy pre-fix files as their inputs.
-
-In other words, the repo contains both a corrected current pipeline and a large set of legacy artifacts that have not all been retired.
-
----
-
-## 6) Questions to settle before trusting an analysis here
-
-Before running a final analysis or writing results from this repo, these questions should be answered explicitly:
-
-1. Is the canonical manuscript target the old 16-unit ablation workflow or the corrected three-arm capacity-sweep workflow?
-2. Should legacy root-level files like `capacity_sweep_summary.csv`, `capacity_sweep_results.csv`, and `degradation_analysis.csv` be retained only as historical artifacts, or should they be regenerated for side-by-side comparison?
-3. Is `results/processed/capacity_summary_table.csv` the authoritative current summary, or is there a separate finalized manuscript table to use instead?
-4. Should the team ignore the stale 2fa4c4c-era outputs entirely, or keep them explicitly marked as historical only?
-
----
-
-## Bottom line
-
-The repo is in a mixed state: the fixed EC50 calibration and the three-arm sweep are the active analysis path, but the older root-level ablation and capacity summary artifacts remain in the working tree and are still referenced by some scripts. The real fix for the empty EC50 objective was commit `a60be12`, and it matters because the personalization claim depends on EC50 values being real patient-level estimates rather than optimizer artifacts. The legacy single-file files like `capacity_sweep_summary.csv` and `degradation_analysis.csv` are not trustworthy for current use, and any analysis should be anchored to the corrected three-arm result set and the processed summaries under `results/processed/` unless a separate manuscript decision explicitly overrides that.
+# Agent orientation report (read-only pass, 2026-10-11)
+
+Prepared from a read-only review of the repository. Nothing was modified, moved,
+deleted or committed except this file, which replaces an earlier orientation
+report committed in 0b1241b (recover it with
+`git show 0b1241b:results/processed/agent_orientation.md`). Every claim below
+was checked against the file, log or git object named next to it.
+
+## 0. Where this was run
+
+| item | value |
+|---|---|
+| working directory | `C:\Users\chris' pc\icu-sedation-research\icu_sedation_digital_twin_research` |
+| `src/02b_run_capacity_sweep.py` present | yes |
+| git root | this directory (its own repository, not a subfolder of the outer one) |
+| HEAD | `0b1241b` "Document EC50 fix, manuscript sync, and three-arm sweep provenance", 2026-10-11 22:00 -0400 |
+| working tree | clean; `main` is in sync with `origin/main` (public GitHub repo) |
+| tags | `pre-ec50-fix-manuscript-run` -> `2fa4c4c` (the pre-fix sweep commit) |
+| outer folder `..` | separate git repo at `236d596` (Sep 2026 state). Ignored, except for one identity check in Section 5.1 |
+
+Order read: `instructions.txt`, `paper/main.tex`,
+`results/processed/project_inventory.md`, every file under `src/` in numerical
+then alphabetical order, then the result CSVs, logs and git history.
+
+## 1. Pipeline in order
+
+Stage 0 is outside Python. `queries/*.sql` (QUERY 2, 3, 4, verbatim) run on
+MIMIC-IV v3.1 in BigQuery and produce the three git-ignored files in `data/`.
+The copies present here carry a file date of 2026-05-06.
+
+| # | script | reads | writes | state on 2026-10-11 |
+|---|---|---|---|---|
+| 1 | `src/01_build_features.py` | `data/kidney_subgroups_{patients,propofol,sas}.csv`; imports `lib/ec50_calibration.py` | `cached_features.pkl` | Post-fix build 2026-10-07 19:46 to 20:08 (`postfix_feature_build_20261007.log`). I re-read the cache with script 17: 30,931 instances, 1,489 patients, 774 pinned-low, 0 pinned-high, 715 off-bound of which 45 are the 3.08 fallback. |
+| 2 | `src/02_run_ablation.py` | `cached_features.pkl` | `ablation_results.csv` (append, resumable) | Legacy 16-unit ablation. Last run 2026-05-07 on the pre-fix cache. Not rerun post-fix. |
+| 3 | `src/03_analyze_results.py` | `ablation_results.csv` | `summary_statistics.csv`, `degradation_analysis.csv` | Legacy. Console narration still frames the abandoned architecture hypothesis. |
+| 4 | `src/04_make_figures.py` | nothing (only checks that `results/processed/capacity_summary_table.csv` exists) | nothing | Rewritten in 0b1241b into a guard that prints a notice and exits. The ablation figures `figures/ablation_main.*` and `figures/absolute_mae.*` can no longer be regenerated by any script in the tree. |
+| 5 | `src/02b_run_capacity_sweep.py` (`--arm`, `--config`, `--units`) | `cached_features.pkl` | `capacity_sweep_arm_a_full_results.csv`, `capacity_sweep_arm_b_interior_results.csv`, `capacity_sweep_arm_c_matched_results.csv`, `three_arm_cohort_counts.csv` (rewritten every run), appends to `three_arm_capacity_sweep.log` | The live experiment. 366 of the 600 planned runs exist (Section 3). Resume key is (configuration, seed, lstm_units) per arm; writer de-duplicates. |
+| 6 | `src/compute_capacity_summary.py` | the three arm CSVs | `results/processed/capacity_summary_table.csv`, `results/processed/capacity_summary.md` | Tolerates incomplete cells (marks `LOW_N`). Outputs dated 2026-10-09 11:48, which is BEFORE the 30 Arm-B 4-unit runs of 14:10 to 14:29, so the processed table is stale with respect to the arm-B file. |
+| 7 | `src/03c_analyze_three_arm_capacity_sweep.py` | the three arm CSVs | `capacity_sweep_{a_full,b_interior,c_matched}_summary.csv`, `three_arm_capacity_summary.csv`, `three_arm_pure_ml_comparison.csv`, `three_arm_capacity_trend_stats.csv` | Refuses to run unless every (units, config) cell in every arm has 10 seeds. None of its outputs exist. It cannot run on the current files. |
+| 8 | `src/03b_analyze_capacity_sweep.py` | `capacity_sweep_results.csv` (pre-fix, commit 2fa4c4c) | `capacity_sweep_summary.csv` | Legacy single-arm summariser. Only consumer of the pre-fix raw file besides script 16. |
+| 9 | `src/04b_plot_capacity_sweep.py` | `results/processed/capacity_summary_table.csv`; imports `lib/publication_plots.py` | `figures/capacity_sweep_by_arm.{png,pdf}` | Rewritten in 0b1241b. It no longer reads `capacity_sweep_summary.csv` and no longer produces `capacity_sweep_main.*` or `capacity_heatmap.*`. Duplicates the first plot in script 16. |
+| 10 | `src/compute_population_baseline.py` | `cached_features.pkl`, `capacity_sweep_arm_a_full_results.csv` | `results/processed/baseline_comparison.csv`, `results/processed/baseline_scale_calibration.csv` | Full-cohort test split. Fits E0/Emax on training patients (E0 3.74, Emax 1.47), retrains one clinical-only XGBoost and one seed-42 4-unit FULL_HYBRID LSTM for paired p-values, and takes the 10-run LSTM means from the arm-A file. |
+| 11 | `src/compute_arm_b_mechanistic.py` | `cached_features.pkl`, both baseline CSVs, arm A and arm B CSVs; imports from script 10 | `results/processed/arm_b_mechanistic_comparison.csv`; also REWRITES `results/processed/baseline_comparison.csv` (adds two paired-p columns) | Asserts 774 pinned and a 572/143 Arm-B split. Fits Arm-B anchors (E0 3.99, Emax 1.73). |
+| 12 | `src/append_arm_b_capacity_comparisons.py` | arm B CSV, `arm_b_mechanistic_comparison.csv` | appends three rows (Arm B 4-unit NO_STATIC_MECH, ONLY_MECH, NO_TEMPORAL) to `arm_b_mechanistic_comparison.csv` | Idempotent. Asserts seeds 42-51 and 715/572/143. |
+| 13 | `src/refit_arm_b_ec50_corrected_anchors.py` | `cached_features.pkl`, the three raw `data/` CSVs | `results/processed/arm_b_ec50_refit_comparison.csv`, `arm_b_ec50_refit_patient_level.csv`, `arm_b_ec50_shrinkage_selection.csv` | Re-simulates Ce from raw infusions, refits EC50 per Arm-B patient under hard-coded anchors E0 3.9866, Emax 1.7315 (the Arm-B anchors from script 11). Does not touch the cache. |
+| 14 | `src/05_cohort_figures.py` (`--force`) | `cached_features.pkl`, `data/kidney_subgroups_patients.csv`, `results/processed/capacity_summary_table.csv` (arm A, 4 units, FULL_HYBRID, used as the "published" reference), `cohort_per_patient_mae.csv` if present | `cohort_table1.csv`, `cohort_correlations.csv`, `cohort_baseline_comparison.csv`, `cohort_per_patient_mae.csv` (only with `--force` or if absent), `figures/cohort/{cohort_distributions,cohort_sex_comorbidity,cohort_mae_scatter,cohort_ec50_scatter}.*` | Last run 2026-10-11 17:33 via script 16. Reused the per-patient MAE cache from 2026-09-03 (pre-fix). |
+| 15 | `src/08_ec50_diagnostics.py` | `cached_features.pkl`, optional `cohort_per_patient_mae.csv`, optional raw SAS and propofol CSVs | `ec50_diagnostics.csv`, `ec50_patient_level.csv`, `figures/cohort/ec50_pinning_diagnostics.*` | Last run 2026-09-03 on the PRE-fix cache. Its outputs still show 45 pinned-high patients. Not rerun. |
+| 16 | `src/06_generate_corrected_figures.py` | processed CSVs, `cached_features.pkl`, `capacity_sweep_results.csv` (pre-fix, as the comparator panel), arm A CSV; imports from script 10 | `figures/{capacity_sweep_by_arm,arm_b_mechanistic_4u,arm_a_pre_post_fix,scale_recalibration,baseline_comparison}.{png,pdf}`, runs script 14 as a subprocess, writes `figures/FIGURE_MANIFEST.md` | Ran 2026-10-11 17:33. |
+| 17 | `src/09_ec50_cache_classification.py` (`--cache`, `--tolerance`) | a feature cache | console only | Read-only check. Used in this review. |
+
+`src/lib/ec50_calibration.py` is imported by script 1. `src/lib/publication_plots.py`
+is imported by scripts 9, 14, 15, 16. `src/lib/experiment_tracker.py` is imported
+by nothing.
+
+Order in which the October work actually ran, from log headers and file dates:
+script 1 (Oct 7 19:46-20:08), script 5 in eight sessions (Oct 7 20:17 to
+Oct 9 14:29), script 6 (Oct 9 11:48), scripts 10 and 11 (Oct 9 13:14-14:29),
+script 12 (Oct 9 14:29-14:32), script 13 (Oct 9 14:40), scripts 16 and 14
+(Oct 11 17:33).
+
+## 2. Current versus superseded result files
+
+| file | produced by | cache | status |
+|---|---|---|---|
+| `capacity_sweep_arm_a_full_results.csv` | script 5, Oct 7 20:17 to Oct 9 02:15 | post-fix | Current but incomplete (176/200). See the note below on the brief's premise. |
+| `capacity_sweep_arm_b_interior_results.csv` | script 5, Oct 9 00:22 to 14:29 | post-fix | Current, incomplete (110/200). |
+| `capacity_sweep_arm_c_matched_results.csv` | script 5, Oct 9 | post-fix | Current, incomplete (80/200). |
+| `three_arm_cohort_counts.csv` | script 5 | post-fix | Current (1489 / 715 / 715). |
+| `results/processed/capacity_summary_table.csv`, `capacity_summary.md` | script 6, Oct 9 11:48 | post-fix | Current but stale: predates the Arm-B 4-unit NO_STATIC_MECH, ONLY_MECH and NO_TEMPORAL runs. Regenerate before use. |
+| `results/processed/baseline_comparison.csv`, `baseline_scale_calibration.csv` | scripts 10, 11 | post-fix | Current. |
+| `results/processed/arm_b_mechanistic_comparison.csv` | scripts 11, 12 | post-fix | Current. |
+| `results/processed/arm_b_ec50_refit_*.csv` | script 13 | post-fix cache plus raw data | Current. |
+| `cohort_table1.csv`, `cohort_correlations.csv`, `cohort_baseline_comparison.csv` | script 14, Oct 11 | MIXED | Demographics and EC50 columns are post-fix; every per-patient MAE quantity comes from the Sep 3 pre-fix cache file below. |
+| `cohort_per_patient_mae.csv` | script 14, 2026-09-03 | PRE-fix | Superseded as a model-error record. Still consumed by scripts 14 and 15. |
+| `ec50_diagnostics.csv`, `ec50_patient_level.csv`, `figures/cohort/ec50_pinning_diagnostics.*` | script 15, 2026-09-03 | PRE-fix | Superseded (45 pinned-high still present). Correct historical record of the bug, wrong description of the current cache. |
+| `capacity_sweep_results.csv` | script 5 (old form), commit 2fa4c4c, 2026-05-09 | PRE-fix | Superseded as truth. Deliberately retained as the pre-fix comparator for `figures/arm_a_pre_post_fix.*` and as the source of the manuscript's published numbers. |
+| `capacity_sweep_summary.csv` | script 8 | PRE-fix | Superseded. |
+| `ablation_results.csv`, `summary_statistics.csv`, `degradation_analysis.csv` | scripts 2, 3, 2026-05-07 | PRE-fix | Superseded. |
+| `ablation_results_3seeds.csv` | earlier 3-seed run | PRE-fix | Superseded (already so marked in instructions.txt). |
+| `figures/capacity_sweep_main.*`, `capacity_heatmap.*`, `ablation_main.*`, `absolute_mae.*` | old scripts 9 and 4 | PRE-fix | Superseded, and no longer regenerable from the current tree. |
+
+### 2.1 The three files named in the brief
+
+`capacity_sweep_summary.csv` and `degradation_analysis.csv` are pre-fix and are
+read by NOTHING in `src/` today. Script 8 writes the first; script 3 writes the
+second; the rewritten scripts 4 and 9 do not open either. The only remaining
+references are a print string in script 14 (line 528, the label says
+`capacity_sweep_summary.csv` while the value actually comes from the processed
+table), docstrings, `docs/SETUP_INSTRUCTIONS.md`, and the two orientation
+documents.
+
+`capacity_sweep_arm_a_full_results.csv` does NOT predate the EC50 fix according
+to the repository's own evidence: the first sweep session in
+`three_arm_capacity_sweep.log` began 2026-10-07 20:17, nine minutes after the
+post-fix cache finished building, and that session already prints
+"pinned-high: 0 / Confirmed: no pinned-high values remain". Every session since
+prints the same. The commit that introduced the fix (a60be12, 20:31) was made
+after the sweep had started on the fixed cache. If the brief means a different
+calibration fix (for example the E0/Emax re-anchoring introduced on Oct 9, see
+question 1 in Section 6), then every result file in the repository predates it,
+because the cache was never rebuilt with re-anchored parameters.
+
+Readers of the arm-A file today: scripts 7, 6, 10, 11, 16, and indirectly 14
+(through the processed table). If the arm-A file is ruled untrustworthy, all of
+`results/processed/` and all figures dated 2026-10-11 inherit that status.
+
+## 3. The three arms
+
+All arms: LSTM only, hidden units 4/8/16/32, five feature configurations,
+seeds 42-51, 50 fixed epochs, batch 64, validation split 0.15, patient-level
+80/20 split with random_state 42 applied independently inside each arm.
+Architecture identical to `02_run_ablation.py` except the hidden size.
+
+| arm | patients | train/test | definition (from script 5) |
+|---|---|---|---|
+| A, full | 1,489 | 1,191 / 298 | every patient in the post-fix cache |
+| B, interior | 715 | 572 / 143 | patients whose `EC50_calibrated` is more than 0.001 from both bounds 0.5 and 10.0. This is 670 genuinely fitted interior values PLUS the 45 patients assigned the 3.08 population fallback by the fix. The 45 are not patient-specific fits; instructions.txt Section 11.6 asks that this composition be preserved in interpretation. |
+| C, matched | 715 | 572 / 143 | random sample without replacement from arm A, `RandomState(42)`, sized to arm B |
+
+Why arm C exists: arm B differs from arm A in two ways at once, the EC50
+composition of its patients and the number of training patients. A B-versus-A
+difference could be either. Arm C holds the sample size fixed at 715 with a
+random (not EC50-selected) sample, so the B-minus-C contrast at each capacity
+isolates the effect of restricting to patients whose EC50 was identifiable.
+The pre-registered primary contrast (instructions.txt 11.6, transparency
+checklist Section 9) is Pure-ML-versus-Full-Hybrid degradation in B minus the
+same in C; positive means more mechanistic benefit in the interior cohort.
+
+### 3.1 Completion state (seeds present per cell; design is 10)
+
+| arm | FULL_HYBRID | PURE_ML | NO_TEMPORAL | NO_STATIC_MECH | ONLY_MECH | total |
+|---|---|---|---|---|---|---|
+| A | 10/10/10/10 | 10/10/10/10 | 10/10/10/6 (32u has seeds 42-47) | 10/10/10/0 | 10/10/10/0 | 176/200 |
+| B | 10/10/10/10 | 10/10/10/10 | 10/0/0/0 | 10/0/0/0 | 10/0/0/0 | 110/200 |
+| C | 10/10/10/10 | 10/10/10/10 | 0 | 0 | 0 | 80/200 |
+
+Cells are listed as 4u/8u/16u/32u. Total 366 of 600. The log shows the design
+being narrowed rather than finished: seven sessions (Oct 7 20:17 through Oct 8
+11:36) ran arm A with all five configurations and stopped at 166 runs; the
+Oct 9 00:22 session was launched with `--config FULL_HYBRID PURE_ML` for all
+three arms (240 runs); the Oct 9 14:10 session ran only arm B at 4 units for the
+other three configurations (30 runs). No decision to narrow the design is
+recorded in instructions.txt, the transparency checklist, or a commit message.
+
+### 3.2 What the post-fix arms show (from `capacity_summary.md`, Oct 9 11:48)
+
+Pure-ML MAE degradation relative to Full Hybrid at the same capacity, in
+percent (positive means removing mechanistic features hurt):
+
+| units | pre-fix headline (2fa4c4c) | A post-fix | B interior | C matched | B minus C |
+|---|---|---|---|---|---|
+| 4 | +10.43 | -0.67 | +6.53 (Holm p 0.023) | +2.07 | +4.5 |
+| 8 | +4.49 | +2.33 | +3.52 | +1.29 | +2.2 |
+| 16 | +0.67 | +5.40 | +4.15 | +6.62 | -2.5 |
+| 32 | +0.62 | +0.67 | -0.63 | -4.60 | +4.0 |
+
+Absolute 4-unit FULL_HYBRID MAE: pre-fix 0.3514 +/- 0.0175; post-fix arm A
+0.3764 +/- 0.0215; arm B 0.3471; arm C 0.3704. Only the arm-B 4-unit contrast
+survives Holm correction. No arm reproduces the monotonic decay that is the
+manuscript's headline. Arm B's extra 4-unit configurations (NO_STATIC_MECH
+0.356, ONLY_MECH 0.351, NO_TEMPORAL 0.361) are not distinguishable from
+FULL_HYBRID after Holm (p 0.64 to 0.70).
+
+### 3.3 Arm B composition, verified against the cache (2026-10-11)
+
+Computed read-only from `cached_features.pkl` using the exact classification
+rule in script 5 (first `EC50_calibrated` per `stay_id`; pinned if within
+0.001 of 0.5 or 10.0; Arm B is everything else) and the same
+`train_test_split(..., test_size=0.2, random_state=42)`:
+
+| quantity | count |
+|---|---|
+| patients in cache | 1,489 |
+| pinned-low (within 0.001 of 0.5) | 774 |
+| pinned-high (within 0.001 of 10.0) | 0 |
+| Arm B by the script's rule | 715 |
+| patients with EC50 exactly 3.08 (also the count within 1e-9) | 45 |
+| of those 45, inside Arm B | 45 |
+| of those 45, inside pinned-low | 0 |
+| Arm B patients with an optimiser-fitted EC50 (not 3.08) | 670 (range 0.5012 to 6.1777) |
+| Arm B split | 572 train / 143 test |
+| 3.08 patients in Arm B train / test | 37 / 8 |
+
+No fitted patient lands on 3.08 by coincidence (the nearest fitted value is
+3.0878), so "exactly 3.08" identifies the fallback patients unambiguously.
+Arm B is therefore 670 fitted patients plus 45 population defaults, and 8 of
+the 143 Arm-B test patients (5.6 percent) carry the default. Any statement that
+Arm B contains 715 genuinely fitted patients is wrong. The in-repo manuscript
+text of a60be12 stated the 670 plus 45 composition correctly; the manuscript on
+disk at HEAD does not mention Arm B at all (Section 5.1), so a "715 fitted"
+claim must live in a copy outside this repository.
+
+Where the 774 / 670 split comes from. Every committed artefact that reports
+interior = 670 is a product of script 15 (`08_ec50_diagnostics.py`) run on
+2026-09-03 against the PRE-fix cache: `ec50_diagnostics.csv`,
+`ec50_patient_level.csv` (group column: 774 pinned-low, 45 pinned-high, 670
+interior, total 1,489), `step08_ec50_diagnostics.log`, and
+`figures/cohort/ec50_pinning_diagnostics.*`. The Sep 3 `step05_cohort_figures.log`
+also shows "EC50 interior only n=670" for the same reason. A total of 1,444 is
+774 plus 670, that is, the pre-fix table with its 45 pinned-high rows dropped.
+None of these read the current cache. The current cache gives 774 / 0 / 715,
+which is what `cohort_correlations.csv` (regenerated Oct 11, n=715) and script 5
+report.
+
+## 4. The EC50 calibration defect
+
+What it was. `01_build_features.py` fitted each patient's EC50 by bounded
+Brent minimisation on [0.5, 10.0] of the mean squared error between the
+sigmoid-Emax prediction and the first max(10, n/2) SAS observations. The loss
+only accumulated observations whose timestamp fell inside the 72-hour simulated
+trajectory and returned `loss / max(n, 1)`. For 45 patients no calibration
+observation fell inside the window, so the objective was identically 0 for
+every candidate and `minimize_scalar` terminated at its golden-section limit,
+9.999995. Those 45 "calibrated" values encoded nothing about the patient and
+had normal drug exposure. This was established diagnostically by script 15 in
+commit `236d596` (2026-09-03) and recorded in instructions.txt Section 11.5.
+
+Which commit fixed it. `a60be12` "Fix-empty-EC50-calibration-and-document-
+capacity-sweep", 2026-10-07 20:31 -0400, author "C". It moved the objective
+into a new `src/lib/ec50_calibration.py` whose `calibrate_ec50` returns
+`EC50_pop` (3.08) immediately when the usable-index list is empty, and made
+`01_build_features.py` call it. The optimiser path and the exception fallback
+are otherwise unchanged. The cache was rebuilt the same evening; the 45
+patients now carry exactly 3.08 and no patient is within 0.001 of 10.0
+(verified by me with script 17).
+
+Why it matters.
+
+1. It changes the feature matrix for 45 of 1,489 patients, so pre-fix and
+   post-fix model results are different experiments and must not be pooled.
+   The published numbers (0.3514, the 10.4 to 0.6 percent decay) come from the
+   pre-fix cache and are tagged `pre-ec50-fix-manuscript-run`.
+2. On the post-fix cache the headline does not reproduce (Section 3.2). The
+   4-unit FULL_HYBRID moved from 0.3514 to 0.3764 and the 4-unit Pure-ML
+   degradation flipped sign. Whether that shift comes from the 45 corrected
+   patients, from the different environment (Python 3.11.9, pandas 3.0.6,
+   NumPy 2.4.6 for the October runs versus 3.11.4, 2.3.3, 1.26.4 in the local
+   venv), or from the documented per-seed non-reproducibility (instructions.txt
+   Section 9, HIGH item) has not been isolated. Note that the Sep 2026 rerun of
+   the same configuration on the pre-fix cache in the local venv gave 0.3532,
+   consistent with 0.3514, which argues that the fix or the new environment,
+   not seed noise alone, moved the number.
+3. The fix does nothing for the larger problem: 774 patients (52 percent) are
+   still pinned at the lower bound because their modelled exposure is near
+   zero and the Eleveld E0 of 7 sits about 3.4 SAS units above the ICU
+   baseline. That is why scripts 10, 11 and 13 fit E0/Emax to the data. Under
+   those fitted anchors, personalised EC50 predicts WORSE than the population
+   EC50 on the full-cohort test split (MAE 0.661 vs 0.632, paired p about
+   1e-86) and in arm B (0.487 vs 0.430). Refitting EC50 under corrected
+   anchors (script 13) does not beat the population value either (0.313 and
+   0.300 with shrinkage vs 0.292, p 0.26 and 0.36). The personalisation claim
+   in the manuscript is currently unsupported by anything in `results/`.
+4. The 45 fallback patients are counted as "interior" by arm B's rule, so
+   arm B is 670 fitted plus 45 constants.
+
+## 5. Contradictions with instructions.txt or the manuscript
+
+Ordered by how much they would mislead someone who started work today.
+
+### 5.1 The manuscript was reverted on 2026-10-11, not rewritten
+
+`paper/main.tex` at HEAD is git blob `ec22b57`, the same blob committed on
+2026-09-02 in `d01aa41`, and it is byte-identical to the stale outer copy
+`../paper/main.tex` (same size 28,683 bytes, same mtime Sep 2 20:13). Commit
+`a60be12` (Oct 7) had rewritten the cohort, EC50 calibration, three-arm,
+statistical and computational paragraphs and inserted the 774/0/715 numbers
+(blob `daf5235`). Commit `0b1241b` (Oct 11, message "manuscript sync") replaced
+that with the Sep 2 text. The header comment is the original May 2026 comment;
+it does not mention a 2026-10-11 rewrite. The file as it stands still says
+five algorithm families, three LSTM seeds, Python 3.10 and TensorFlow 2.13, and
+a personalisation benefit. The Oct 7 text is recoverable with
+`git show a60be12:paper/main.tex`. The transparency checklist kept its Oct 7
+edits; only the manuscript regressed. The brief's description of the manuscript
+does not match the file on disk.
+
+### 5.2 Patient-level derived tables are tracked in the public repository
+
+instructions.txt Section 1 states that the only tracked CSVs are aggregate
+result files and that the history contains no patient data. Today these are
+tracked and pushed to `origin/main`:
+
+| file | rows | contents | first committed |
+|---|---|---|---|
+| `ec50_patient_level.csv` | 1,489 | one row per `stay_id`: EC50, mean/median propofol rate, Ce statistics, mean/SD/range of SAS, per-patient MAE | `236d596`, Sep 2026 |
+| `cohort_per_patient_mae.csv` | 298 | `stay_id`, per-patient MAE, instance count | `848e0e9`, Sep 2026 |
+| `results/processed/arm_b_ec50_refit_patient_level.csv` | 1,249 | `stay_id`, `observation_index`, `actual_sas`, `ce`, predictions and errors per observation | `0b1241b`, Oct 11 |
+
+The third contains individual SAS observations keyed to MIMIC stay identifiers.
+Whether any of these is permitted under the MIMIC-IV data use agreement is the
+author's decision, not mine; I flag it because the provenance file asserts the
+opposite and the repository is public. The raw `data/*.csv` and `*.pkl` files
+remain correctly ignored.
+
+### 5.3 The three-arm design was narrowed without a recorded decision
+
+instructions.txt 11.6 and the transparency checklist describe 600 runs, say to
+run `--arm all`, and say "No values should be reported until the corresponding
+result and log files exist and all cells are complete." 366 runs exist, script 7
+cannot run, and yet `results/processed/capacity_summary.md`, five figures dated
+2026-10-11, and the Oct 7 manuscript text all report or depend on arm values.
+The log shows deliberate narrowing via `--config` (Section 3.1).
+
+### 5.4 Mixed pre-fix and post-fix provenance in the cohort outputs
+
+`cohort_per_patient_mae.csv` was never regenerated after the fix (file date
+and git history both say 2026-09-03), but `figures/cohort/cohort_mae_scatter.*`,
+`cohort_correlations.csv` and `cohort_baseline_comparison.csv` were regenerated
+on 2026-10-11 from it against post-fix EC50 values and demographics.
+`cohort_baseline_comparison.csv` therefore pairs a pre-fix patient-weighted LSTM
+MAE (0.3395) with a post-fix instance-weighted one (0.3764) labelled "published
+capacity sweep". Script 14 now takes its "published" reference from the
+post-fix arm-A table (0.3764) while the published value in the manuscript and
+in instructions.txt Section 6 is 0.3514, and its console label still names
+`capacity_sweep_summary.csv`. `step05_cohort_figures.log` is from the Sep 3 run
+and does not describe the committed CSVs.
+
+### 5.5 Figure manifest misattribution
+
+`figures/FIGURE_MANIFEST.md` lists `ec50_pinning_diagnostics.{png,pdf}` as
+generated by script 14 on 2026-10-11 17:33. They were generated by script 15 on
+2026-09-03 from the pre-fix cache and have not changed since (file date Oct 8
+23:28, the clone time). The manifest's `write_manifest` globs the cohort folder
+and stamps everything with the current time.
+
+### 5.6 Extraction-date claims are not supported by the files present
+
+instructions.txt 11.6, the transparency checklist ("Extraction Date
+2026-10-07") and the reverted Oct 7 manuscript text say the three raw CSVs were
+freshly pulled from BigQuery on 2026-10-07. The files in `data/` are dated
+2026-05-06 and have the same row counts as the April 2026 extract. No job IDs
+exist for an October pull (both documents say "pending"). From this tree, the
+October pull cannot be confirmed; the files being used are the May copies.
+
+### 5.7 instructions.txt is internally stale
+
+- Header says "Last updated: 2026-10-07"; the file was edited on Oct 11.
+- Sections 2 and 8 say script 4 reads `degradation_analysis.csv` and writes the
+  ablation figures, and script 9 reads `capacity_sweep_summary.csv` and writes
+  `capacity_sweep_main` and `capacity_heatmap`. Both scripts were rewritten in
+  0b1241b and do neither.
+- Section 2 still lists `06_capacity_sweep.py` and `07_capacity_stats.py` as
+  planned, and records them as absent. `06_generate_corrected_figures.py` now
+  exists with an unrelated role, and nothing produces the Spearman and
+  exponential-fit statistics for the pre-fix sweep (script 7 would, for the
+  post-fix arms, once cells are complete).
+- Section 8 omits scripts 7, 15, 16, 17 and all five unnumbered scripts.
+- Section 2 says `lib/publication_plots.py` is dead code; four scripts import it.
+- Section 9 MEDIUM items "Run 05_cohort_figures.py" and "Run 07_capacity_stats.py"
+  are stale; 05 has run twice.
+- Section 6 "VERIFIED RESULTS" presents the pre-fix sweep as the headline
+  without stating that the post-fix arm A does not reproduce it (Section 3.2).
+- Section 11.6 quotes `cached_features_post_ec50_fix_snapshot.pkl` at
+  10,007,525 bytes. That file is not in this tree, the cache here is
+  10,007,424 bytes, and no checksum exists for either.
+- The docstring of script 5 still says it writes `capacity_sweep_results.csv`
+  and takes 4 to 6 hours.
+
+### 5.8 Manuscript (as on disk) versus results
+
+Beyond 5.1: the manuscript claims the personalised digital twin "more
+accurately predicts" the patient's response; `results/processed/` shows the
+opposite under every anchor choice tried (Section 4, item 3). The manuscript
+has no persistence baseline; `baseline_comparison.csv` shows persistence at
+MAE 0.2866 beating every model, as instructions.txt Section 9 already warns.
+The cohort paragraph on disk gives the April extraction date, which is
+consistent with the files present but not with the checklist (5.6).
+
+### 5.9 Smaller inconsistencies
+
+- `project_inventory.md` says `tests/` exists (it does not), that HEAD is
+  `31238e2` (it is `0b1241b`), and that tracked files are modified (tree is
+  clean). `README.md` refers to `notebooks/` and `tests/` directories that do
+  not exist here and still describes the abandoned six-algorithm framing
+  (known LOW item).
+- The previous `agent_orientation.md` stated that scripts 3 and 4 read
+  `degradation_analysis.csv` (3 writes it; 4 reads nothing), that script 9
+  reads `capacity_sweep_summary.csv` (it reads the processed table), and that
+  script 14 reads the legacy summary (it reads the processed table).
+- `baseline_comparison.csv` row "XGBoost" is the clinical-features-only model
+  (MAE 0.3441, identical to the May PURE_ML XGBoost to 16 digits), not the
+  FULL_HYBRID XGBoost (0.3330) that carried the digital-twin benefit. Its
+  `p_vs_ours` values are paired against a single seed-42 retrain, while the
+  "ours" row in the same table is a 10-run mean.
+- `capacity_summary_table.csv` is older than the arm-B file it summarises
+  (Section 1, row 6). Script 16's `arm_b_mechanistic_4u` figure works around
+  this by pulling the three missing configurations from
+  `arm_b_mechanistic_comparison.csv` instead.
+- `cohort_correlations.csv` "EC50 interior only, n=715" includes the 45
+  constant 3.08 fallbacks; the Sep 3 log's equivalent row had n=670.
+
+## 6. Questions to answer before running any analysis here
+
+1. Which "calibration fix" does the brief refer to? If it is the Oct 7
+   empty-window fallback, the arm-A file post-dates it and the brief's premise
+   should be corrected. If it is the E0/Emax re-anchoring (scripts 10, 11, 13,
+   Oct 9), no cache has been built with it, so every result file predates it and
+   a rebuild of `cached_features.pkl` with re-anchored `mech_pred_*` features
+   would be the first step.
+2. Is the narrowed design (FULL_HYBRID vs PURE_ML in all arms, all five
+   configurations only in arm A up to 16 units and arm B at 4 units) the final
+   design, or should the remaining 234 runs be completed so that script 7 can
+   run and the pre-registered B-minus-C analysis can be reported as specified?
+3. Was the Oct 11 reversion of `paper/main.tex` intentional? Should the Oct 7
+   text be restored from `a60be12`, and is Overleaf still the live manuscript?
+4. What should happen to the three tracked patient-level tables in the public
+   repository (keep, untrack, or rewrite history)? This needs the author's
+   reading of the MIMIC-IV DUA.
+5. Which environment is canonical for new runs: the local venv (Python 3.11.4,
+   pandas 2.3.3, NumPy 1.26.4, TF 2.21.0; it does read the cache) or the
+   "fresh clone" environment that built the cache and ran the arms (3.11.9,
+   pandas 3.0.6, NumPy 2.4.6)? Mixing them would add a third source of
+   variation to an already non-reproducible per-seed pipeline.
+6. Which number is "the published 4-unit FULL_HYBRID": 0.3514 (pre-fix, in the
+   manuscript) or 0.3764 (post-fix arm A, which script 14 now labels published)?
+7. Should `cohort_per_patient_mae.csv` be regenerated with `--force` on the
+   post-fix cache before any per-patient figure or correlation is reused, and
+   should script 15 be rerun so that `ec50_diagnostics.csv` describes the
+   current cache?
+8. Did a BigQuery re-extraction happen on 2026-10-07, and if so where are those
+   files and job IDs? The files here are dated 2026-05-06.
+9. Has a decision been made on the persistence-baseline problem (reframe as
+   methodological, change the target, or evaluate on changing instances)? It
+   decides whether more sweep runs are worth the compute.
+10. Can a SHA-256 of the cache in use be recorded now, and does the post-fix
+    snapshot pickle exist anywhere?
+
+## 7. How this was verified
+
+Read-only operations only: `git log`, `git show`, `git rev-parse`,
+`git ls-files`, `git status`, `git diff --name-only`, `cmp` and `diff -rq`
+against the outer folder, `grep` over `src/`, `docs/`, `figures/`, `results/`,
+pandas cell counts over the four sweep CSVs in a separate process, and
+`src/09_ec50_cache_classification.py --cache cached_features.pkl` using the
+local venv. No script that writes was executed.

@@ -15,7 +15,7 @@ but not WHY.
 Anything marked [VERIFY] or [TODO] is not yet confirmed and must not be treated
 as fact. Do not fill these in by guessing.
 
-Last updated: 2026-10-07
+Last updated: 2026-10-13
 
 ================================================================================
 1. PROJECT IDENTITY
@@ -1631,6 +1631,285 @@ The key comparison is Arm B minus Arm C degradation at each capacity; positive
 values mean a larger relative mechanistic benefit in the interior cohort than
 in an equally sized random sample. No values should be reported until the
 corresponding result and log files exist and all cells are complete.
+
+================================================================================
+12. THE SEEDED 30-INITIALIZATION SWEEP  (tag v2-30seed-corrected)
+================================================================================
+
+Written 2026-10-13. This section is the record the manuscript's Data
+Availability statement points to: for the 30-initialization sweep it says which
+result file and which run produced each number.
+
+12.1 WHAT THE SWEEP IS
+
+630 LSTM training runs, 30 initializations per cell, seeds 42 to 71, in 21
+cells:
+    Arm A (full cohort, 1,489 patients)        4/8/16/32 units x FULL_HYBRID,
+                                               PURE_ML           = 240 runs
+    Arm B (interior, 715 patients)             4/8/16/32 units x FULL_HYBRID,
+                                               PURE_ML           = 240 runs
+    Arm B clean (fitted EC50, 670 patients)    4 units x all five
+                                               configurations    = 150 runs
+Arm C (size-matched random sample) was not run at 30 initializations.
+Everything else is as in the 10-initialization design: 50 fixed epochs, batch
+size 64, validation split 0.15, patient-level 80/20 split with random_state=42.
+
+Arm B clean is Arm B without the 45 patients who were assigned the population
+EC50 3.08 because their calibration window had no usable observation. It keeps
+the Arm B train/test assignment: the 715-patient split is reproduced and the 45
+are dropped from each side (37 from train, 8 from test), giving 535 train and
+135 test patients. Nothing is re-split.
+
+Git reference: annotated tag v2-30seed-corrected. The tagged commit contains
+this file, so its SHA cannot be written here; get it with
+    git rev-parse "v2-30seed-corrected^{commit}"
+
+12.2 THE TWO DEFECTS THESE RUNS ARE FREE OF
+
+(a) EC50 calibration (Section 11.5). The empty-calibration-window defect was
+    fixed in commit a60be12 (2026-10-07), which added
+    src/lib/ec50_calibration.py and made src/01_build_features.py call it.
+    Commit 31238e2 (2026-10-08) did not touch the calibration code; it changed
+    src/02b_run_capacity_sweep.py and added the first post-fix
+    10-initialization Arm A rows. So the fix is a60be12, and 31238e2 is where
+    the first post-fix result file entered the history. Neither commit is the
+    source of any number in this section.
+    Every worker log of the 30-initialization sweep prints, from the cache it
+    loaded: pinned-low 774, pinned-high 0, interior 715, of which 45 assigned
+    the default 3.08 and 670 fitted.
+
+(b) Keras seeding. Until 2026-10-12 run_lstm called np.random.seed(seed) and
+    tf.random.set_seed(seed) only. Keras 3 draws its weight-initializer and
+    dropout seeds from Python's random module, which neither call seeds, so a
+    "seed" did not fix the initial weights and the same seed trained twice gave
+    different results. run_lstm now calls keras.utils.set_random_seed(seed).
+    Every 10-initialization file in the repository
+    (capacity_sweep_arm_{a_full,b_interior,c_matched}_results.csv) predates
+    this and is not reproducible by seed. Rows made with the fixed seeding
+    carry seeding = keras.utils.set_random_seed; rows without a seeding column
+    are pre-fix. 02b refuses to resume a file that has no seeding column.
+
+12.3 INPUT, CODE AND ENVIRONMENT
+
+Input:  cached_features.pkl (git-ignored, never committed)
+            size      10,007,424 bytes
+            SHA-256   33fd7fdcbb485b0f0a1af6b89ef919f0c4a16bd9e1a1e364fa6a01cce2c4cce3
+            contents  30,931 prediction instances, 1,489 patients
+        The SHA-256 was taken on 2026-10-13, after the sweep. The file's
+        modification time is 2026-10-08 23:36:50, before the sweep, so it is
+        the file the sweep read.
+
+Code:   src/02b_run_capacity_sweep.py, with --n-seeds 30, as committed under
+        the tag. --n-seeds other than 10 writes to
+        capacity_sweep_*_30seed_results.csv, so the 10-initialization files are
+        not touched.
+        Analysis: src/03d_analyze_30seed_capacity_sweep.py.
+
+Environment: the venv one level above the repository (logs/
+        launch_30seed_workers.ps1 names it). Python 3.11.4, TensorFlow 2.21.0,
+        Keras 3.14.0, pandas 2.3.3, NumPy 1.26.4, SciPy 1.17.1,
+        scikit-learn 1.8.0. The sweep logs do not print versions; these were
+        read from that venv on 2026-10-13. The Python, pandas, NumPy and SciPy
+        versions agree with the header that 03d wrote into
+        capacity_summary_30seed.md on 2026-10-12.
+
+12.4 THE TWO SESSIONS (94 ROWS AND 536 ROWS)
+
+The 630 rows were written by ten worker processes, one per (arm, units) slice,
+in two sessions on 2026-10-12. Session 2 resumed the files session 1 had
+started; no run was trained twice.
+
+Session 1: started 10:14:39. Logs: three_arm_capacity_sweep_30seed.part-*.log
+    (repository root). None of the ten logs has a "Finished at" line; the
+    workers did not run to completion. 94 rows.
+Session 2: started 11:17:07 (launched 11:16:56, logs/30seed_worker_pids.csv),
+    last worker finished 13:02:53. Logs: logs/30seed.<worker>.log. 536 rows.
+
+    worker                    session 1  session 2  session 2 finished
+    arm_a-4u                      7         53        12:56:14
+    arm_a-8u                      7         53        12:57:45
+    arm_a-16u                     7         53        12:57:19
+    arm_a-32u                     6         54        13:02:53
+    arm_b-4u                     11         49        12:26:06
+    arm_b-8u                     11         49        12:26:52
+    arm_b-16u                    11         49        12:26:34
+    arm_b-32u                    10         50        12:30:02
+    arm_b_clean-4u-main          12         48        12:22:50
+    arm_b_clean-4u-ablation      12         78        12:45:41
+    total                        94        536
+
+    By result file: Arm A 27 + 213 = 240; Arm B 43 + 197 = 240;
+    Arm B clean 24 + 126 = 150.
+
+Each session-2 log states how many rows it found on resume (27, 43 and 24 per
+file) and how many it skipped, and these agree with the table.
+
+Checked 2026-10-13: every "seed=N: MAE=..., R2=..." line in the twenty logs was
+matched to its row in the result files. Session 1 logs hold 94 runs and session
+2 logs hold 536; no key appears in both; together they are exactly the 630
+keys; and all 630 logged MAE and R2 values equal the stored values at the four
+decimals the logs print.
+
+Each worker in session 2 has three log files. 30seed.<worker>.log (written by
+the script) and 30seed.<worker>.out.log (redirected stdout) are byte-identical;
+30seed.<worker>.err.log holds only TensorFlow start-up notices.
+
+The session-1 version of the script is not in the history. 02b was last edited
+at 11:15:26, between the sessions, and the file under the tag is that version,
+which is the one that ran session 2. What is established about the 94
+session-1 rows is in 12.5.
+
+12.5 INITIAL-WEIGHT HASH VERIFICATION (630 OF 630)
+
+Every row stores two SHA-256 digests taken after model.compile and before
+model.fit:
+    init_weights_sha256   all nine weight arrays
+    init_shared_sha256    the seven arrays whose shape does not depend on the
+                          feature configuration (LSTM recurrent kernel and
+                          bias, Dense(16) bias, Dense(8) kernel and bias,
+                          output kernel and bias)
+
+Check 1, reproducibility by seed (2026-10-13). For each of the 330 distinct
+(configuration, units, seed) combinations the model was rebuilt in a fresh
+process from keras.utils.set_random_seed(seed) alone, with no data loaded, and
+both digests were recomputed. Result: init_weights_sha256 matches the stored
+value in 630 of 630 rows, and init_shared_sha256 in 630 of 630. This covers the
+94 session-1 rows, so those were initialised exactly as the committed script
+initialises them. The rebuild has to create the layers in the order run_lstm
+does, because each layer constructor draws its seed in turn.
+
+Check 2, agreement across processes. 240 (configuration, units, seed)
+combinations were trained in more than one arm, by different worker processes.
+All 240 carry a single init_weights_sha256.
+
+Check 3, pairing (run by 03d before any paired test). In all 13 comparisons,
+all 30 seeds give identical init_shared_sha256 for the configuration and for
+PURE_ML. The LSTM input kernel and the Dense(16) kernel differ between
+configurations because the feature counts differ, so paired runs share the
+seed, the shuffle order and the shape-invariant weights, not the whole model.
+
+What the hashes do not show: that training is bit-reproducible. Only the
+initial weights were re-derived; no run was retrained to compare final MAE.
+
+12.6 WHICH FILE AND WHICH RUN PRODUCED EACH NUMBER
+
+All reported values are computed by src/03d_analyze_30seed_capacity_sweep.py
+(run 2026-10-12 15:07) from the three raw files:
+    A        capacity_sweep_arm_a_full_30seed_results.csv        240 rows
+    B        capacity_sweep_arm_b_interior_30seed_results.csv    240 rows
+    B clean  capacity_sweep_arm_b_clean_30seed_results.csv       150 rows
+and written to:
+    results/processed/capacity_summary_30seed.csv       per-cell MAE mean, SD,
+                                                        min, max, mean R2,
+                                                        patient and instance
+                                                        counts
+    results/processed/capacity_comparisons_30seed.csv   differences, bootstrap
+                                                        intervals, dz, counts
+                                                        of seeds, Wilcoxon and
+                                                        Holm p
+    results/processed/capacity_summary_30seed.md        the same, formatted
+
+Per cell. "S1 seeds" were trained in session 1 (log
+three_arm_capacity_sweep_30seed.part-<worker>.log), "S2 seeds" in session 2
+(log logs/30seed.<worker>.log). MAE SD is across the 30 run-level MAEs.
+
+    arm      units  configuration    MAE mean  MAE SD  mean R2  worker                    S1 seeds  S2 seeds
+    A          4    FULL_HYBRID      0.3668    0.0231  0.6103   arm_a-4u                  42-48     49-71
+    A          4    PURE_ML          0.3746    0.0248  0.6001   arm_a-4u                  none      42-71
+    A          8    FULL_HYBRID      0.3762    0.0282  0.6074   arm_a-8u                  42-48     49-71
+    A          8    PURE_ML          0.3912    0.0454  0.5906   arm_a-8u                  none      42-71
+    A         16    FULL_HYBRID      0.3874    0.0358  0.6010   arm_a-16u                 42-48     49-71
+    A         16    PURE_ML          0.3949    0.0298  0.5938   arm_a-16u                 none      42-71
+    A         32    FULL_HYBRID      0.3984    0.0289  0.5953   arm_a-32u                 42-47     48-71
+    A         32    PURE_ML          0.4036    0.0366  0.5860   arm_a-32u                 none      42-71
+    B          4    FULL_HYBRID      0.3544    0.0154  0.4225   arm_b-4u                  42-52     53-71
+    B          4    PURE_ML          0.3603    0.0138  0.4090   arm_b-4u                  none      42-71
+    B          8    FULL_HYBRID      0.3616    0.0196  0.4190   arm_b-8u                  42-52     53-71
+    B          8    PURE_ML          0.3740    0.0202  0.3972   arm_b-8u                  none      42-71
+    B         16    FULL_HYBRID      0.3735    0.0172  0.4066   arm_b-16u                 42-52     53-71
+    B         16    PURE_ML          0.3800    0.0193  0.3940   arm_b-16u                 none      42-71
+    B         32    FULL_HYBRID      0.3910    0.0210  0.3828   arm_b-32u                 42-51     52-71
+    B         32    PURE_ML          0.3941    0.0228  0.3706   arm_b-32u                 none      42-71
+    B clean    4    FULL_HYBRID      0.3495    0.0103  0.3963   arm_b_clean-4u-main       42-53     54-71
+    B clean    4    NO_TEMPORAL      0.3567    0.0130  0.3870   arm_b_clean-4u-ablation   42-53     54-71
+    B clean    4    NO_STATIC_MECH   0.3532    0.0087  0.3867   arm_b_clean-4u-ablation   none      42-71
+    B clean    4    PURE_ML          0.3634    0.0136  0.3731   arm_b_clean-4u-main       none      42-71
+    B clean    4    ONLY_MECH        0.3454    0.0210  0.3985   arm_b_clean-4u-ablation   none      42-71
+
+So every PURE_ML, NO_STATIC_MECH and ONLY_MECH value is session 2 only. Every
+FULL_HYBRID value, and the Arm B clean NO_TEMPORAL value, pools session 1 and
+session 2 runs, and so does every paired comparison.
+
+Cohort sizes, from the same rows and printed in every worker log:
+    A        train 1,191 patients (24,522 instances), test 298 (6,409)
+    B        train 572 (12,303), test 143 (2,953)
+    B clean  train 535 (11,630), test 135 (2,773)
+
+Paired comparisons against PURE_ML (capacity_comparisons_30seed.csv). Each uses
+the two cells above with the same arm and units. Difference = PURE_ML minus
+configuration; POSITIVE MEANS THE CONFIGURATION BEATS PURE_ML. Intervals are
+percentile bootstrap, 10,000 resamples of the 30 seeds, generator seed 42.
+"better" is the number of seeds, out of 30, where the configuration has the
+lower MAE.
+
+  FULL_HYBRID versus PURE_ML by capacity; Holm across the four capacities of
+  the arm (family capacity_full, capacity_interior):
+
+    arm  units  abs diff (95% interval)        pct diff (95% interval)    dz     better  Wilcoxon p  Holm p
+    A      4    +0.0079 (+0.0010 to +0.0151)   +2.15% (+0.26% to +4.13%)  +0.40    22    0.019       0.074
+    A      8    +0.0150 (+0.0010 to +0.0316)   +3.98% (+0.27% to +8.41%)  +0.35    21    0.023       0.074
+    A     16    +0.0075 (-0.0015 to +0.0167)   +1.93% (-0.39% to +4.38%)  +0.29    21    0.164       0.328
+    A     32    +0.0053 (-0.0045 to +0.0154)   +1.32% (-1.13% to +3.89%)  +0.19    18    0.245       0.328
+    B      4    +0.0059 (+0.0019 to +0.0096)   +1.66% (+0.54% to +2.72%)  +0.55    24    0.002       0.005
+    B      8    +0.0124 (+0.0053 to +0.0198)   +3.43% (+1.47% to +5.52%)  +0.61    24    5.55e-04    0.002
+    B     16    +0.0065 (+0.0002 to +0.0132)   +1.73% (+0.04% to +3.55%)  +0.35    17    0.073       0.146
+    B     32    +0.0031 (-0.0054 to +0.0119)   +0.80% (-1.36% to +3.09%)  +0.13    16    0.529       0.529
+
+  Arm B clean, 4 units, each configuration versus PURE_ML (MAE 0.3634); Holm
+  across these four (family configurations_interior_clean_4u):
+
+    configuration   abs diff (95% interval)        pct diff (95% interval)    dz     better  Wilcoxon p  Holm p
+    FULL_HYBRID     +0.0139 (+0.0103 to +0.0177)   +3.98% (+2.94% to +5.07%)  +1.32    27    1.64e-07    6.56e-07
+    NO_TEMPORAL     +0.0067 (+0.0028 to +0.0107)   +1.88% (+0.78% to +3.00%)  +0.61    23    0.001       0.001
+    NO_STATIC_MECH  +0.0102 (+0.0063 to +0.0150)   +2.89% (+1.78% to +4.26%)  +0.83    27    2.55e-07    7.66e-07
+    ONLY_MECH       +0.0180 (+0.0098 to +0.0261)   +5.22% (+2.77% to +7.69%)  +0.77    25    2.32e-04    4.63e-04
+
+  The Arm B clean FULL_HYBRID comparison also appears as a family of one
+  (capacity_interior_clean), where the Holm p equals the raw p, 1.64e-07. The
+  same comparison therefore has two Holm values, 1.64e-07 and 6.56e-07,
+  depending on the family. Say which one is being quoted.
+
+12.7 WHAT THIS SUPERSEDES
+
+- The 10-initialization post-fix arm files and everything derived from them
+  (results/processed/capacity_summary.md, capacity_summary_table.csv, the
+  Arm B 4-unit "+6.53%, Holm p 0.023" result) were made before the seeding fix.
+  They are still in place under their old names. Do not pool them with the
+  30-initialization rows and do not report them as reproducible by seed.
+- results/superseded/pre_seeding_fix/ holds the output of
+  src/02c_run_arm_b_clean_4unit.py from 2026-10-12 08:30 to 09:55 (64 unseeded
+  runs, the comparison table and the log). They were moved out of
+  results/processed/ on 2026-10-13. The README there names the defect. The
+  seeded replacement is the Arm B clean file above.
+
+12.8 WHAT IS NOT ESTABLISHED
+
+- The manuscript is not in this repository. paper/main.tex at the tag is still
+  the 2026-09-02 draft; it contains none of the numbers in this section. The
+  map in 12.6 covers every value in the three processed 30-seed files. A
+  manuscript number that is not in those files is not covered by this section
+  and has not been checked against it.
+- The version of 02b that ran session 1 was not committed (12.4).
+- No 30-initialization run has been retrained to test whether final MAE is
+  reproducible (12.5).
+- Three patient-level tables keyed by stay_id are still tracked in this public
+  repository from earlier commits: ec50_patient_level.csv,
+  cohort_per_patient_mae.csv and
+  results/processed/arm_b_ec50_refit_patient_level.csv. Nothing in the
+  v2-30seed-corrected commits adds to them; the files added for the sweep were
+  scanned and contain no stay_id, subject_id or hadm_id column or value. The
+  statement in Section 1 that the history holds no patient data is not true
+  while those three files are tracked.
 
 ================================================================================
 END
