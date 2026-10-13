@@ -20,7 +20,7 @@ Evidence from git:
   - `results/`
   - `src/compute_arm_b_mechanistic.py`
   - `src/refit_arm_b_ec50_corrected_anchors.py`
-- The nested repo is on `main` and its branch points at `31238e2` (`Three-arm sweep setup, EC50 n=0 fix, partial arm A results`).
+- The nested repo is on `main` and its branch points at `05835ab` (`Three-arm sweep setup, EC50 n=0 fix, partial arm A results`).
 
 By contrast, the outer folder:
 `C:\Users\chris' pc\icu-sedation-research`

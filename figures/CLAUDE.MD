@@ -53,7 +53,7 @@ patient had no usable calibration observations. Bounded minimization then
 terminated at the upper bound 9.999995. Affected exactly the 45 patients with
 empty calibration windows. Those 45 shared an out-of-range constant that the
 model exploited as a patient identifier, which manufactured the capacity result.
-Fixed at `a60be12`; corrected routine returns the population value.
+Fixed at `39a77e5`; corrected routine returns the population value.
 
 Post-fix classification: 774 pinned-low, 0 pinned-high, 715 "interior".
 
@@ -101,6 +101,15 @@ pre-fix; that was wrong.
 ## Hard rules
 - **Never commit patient-level data.** No `stay_id`, `subject_id` or `hadm_id`
   columns, no per-observation values, no `.pkl`. MIMIC-IV data use agreement.
+  Three such tables were committed by mistake and were removed from history
+  on 2026-10-13: `ec50_patient_level.csv`, `cohort_per_patient_mae.csv`,
+  `results/processed/arm_b_ec50_refit_patient_level.csv`. They are now
+  git-ignored. Scripts still write them locally. Never force-add them.
+- **Commit SHAs changed on 2026-10-13.** History after `2fa4c4c` was
+  rewritten to remove those tables. Old SHAs such as `a60be12`, `31238e2`
+  and `0b1241b` no longer exist; the old-to-new table is in
+  `instructions.txt` Section 12.9. The outer stale folder still holds the
+  old history and two of the tables. Never push from it.
 - Never fabricate, estimate or interpolate a number. Say what is missing.
 - Never cite a pre-fix output as evidence about post-fix behavior.
 - Report results whichever way they come out.

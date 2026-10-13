@@ -612,7 +612,7 @@ manuscript is outside this repository.
 
 --- Oct 2026: EC50 fallback fix and three-arm sweep provenance ---
 The repo history contains an important correction after the main capacity sweep:
-commit a60be12, "Fix-empty-EC50-calibration-and-document-capacity-sweep",
+commit 39a77e5, "Fix-empty-EC50-calibration-and-document-capacity-sweep",
 restored a safe fallback for patients whose calibration window contained no
 usable points. The root cause was the same boundary-pinning bug diagnosed in
 Section 7: the objective was flat and scipy terminated at the upper bound,
@@ -1667,11 +1667,11 @@ this file, so its SHA cannot be written here; get it with
 12.2 THE TWO DEFECTS THESE RUNS ARE FREE OF
 
 (a) EC50 calibration (Section 11.5). The empty-calibration-window defect was
-    fixed in commit a60be12 (2026-10-07), which added
+    fixed in commit 39a77e5 (2026-10-07), which added
     src/lib/ec50_calibration.py and made src/01_build_features.py call it.
-    Commit 31238e2 (2026-10-08) did not touch the calibration code; it changed
+    Commit 05835ab (2026-10-08) did not touch the calibration code; it changed
     src/02b_run_capacity_sweep.py and added the first post-fix
-    10-initialization Arm A rows. So the fix is a60be12, and 31238e2 is where
+    10-initialization Arm A rows. So the fix is 39a77e5, and 05835ab is where
     the first post-fix result file entered the history. Neither commit is the
     source of any number in this section.
     Every worker log of the 30-initialization sweep prints, from the cache it
@@ -1902,14 +1902,64 @@ lower MAE.
 - The version of 02b that ran session 1 was not committed (12.4).
 - No 30-initialization run has been retrained to test whether final MAE is
   reproducible (12.5).
-- Three patient-level tables keyed by stay_id are still tracked in this public
-  repository from earlier commits: ec50_patient_level.csv,
-  cohort_per_patient_mae.csv and
-  results/processed/arm_b_ec50_refit_patient_level.csv. Nothing in the
-  v2-30seed-corrected commits adds to them; the files added for the sweep were
-  scanned and contain no stay_id, subject_id or hadm_id column or value. The
-  statement in Section 1 that the history holds no patient data is not true
-  while those three files are tracked.
+- Whether GitHub still serves the removed objects by direct SHA after the
+  2026-10-13 history rewrite (12.9).
+
+12.9 HISTORY REWRITE OF 2026-10-13 AND THE COMMIT RENUMBERING
+
+What was removed, and why. Three patient-level tables keyed by MIMIC-IV stay_id
+had been committed to this public repository, against the rule in Section 1:
+    ec50_patient_level.csv                                  1,489 rows
+    cohort_per_patient_mae.csv                              298 rows
+    results/processed/arm_b_ec50_refit_patient_level.csv    1,249 rows
+In addition one stay_id value was written out in this file (Section 11) and in
+docs/transparency_checklist.md. On 2026-10-13 the three files were removed from
+every commit and the value was replaced by "[stay_id withheld]" in every
+commit, with git filter-repo (--invert-paths, --replace-text), and main was
+force-pushed.
+
+The three tables are now git-ignored (*patient_level*.csv,
+cohort_per_patient_mae.csv). Scripts 05, 08 and
+refit_arm_b_ec50_corrected_anchors.py still write them locally; they must stay
+local.
+
+Scope. The rewrite was limited to commits after 2fa4c4c. Commit 2fa4c4c (the
+pre-fix sweep, tag pre-ec50-fix-manuscript-run), everything before it, and
+ec779fc keep their SHAs. Every later commit was renumbered:
+
+    old SHA   new SHA   date        subject
+    d01aa41   37e1446   2026-09-02  Correct cohort inclusion criteria against the recovered BigQuery SQL
+    7c12724   443bc5c   2026-09-02  Document the 72h window, zero-fill, cohort drop, and imputation defaults
+    5e34040   897d70c   2026-09-02  Add real SQL for QUERY 3 and QUERY 4
+    078e8bc   94adc97   2026-09-02  Add recovered QUERY 2 (partial)
+    867e3c8   84e7b22   2026-09-02  Complete QUERY 2
+    848e0e9   18fa2f3   2026-09-03  Add 05_cohort_figures.py
+    236d596   2dbd4ed   2026-09-03  Diagnose EC50 boundary pinning
+    b0b6712   02e3124   2026-09-03  Update README.md
+    a60be12   39a77e5   2026-10-07  Fix-empty-EC50-calibration-and-document-capacity-sweep
+    31238e2   05835ab   2026-10-08  Three-arm sweep setup, EC50 n=0 fix, partial arm A results
+    0b1241b   41617d5   2026-10-11  Document EC50 fix, manuscript sync, and three-arm sweep provenance
+
+Every reference to these commits in this file, figures/CLAUDE.MD,
+results/processed/agent_orientation.md and
+results/processed/project_inventory.md was changed to the new SHA on
+2026-10-13. Anything written before that date outside those four files that
+cites an old SHA (the manuscript, notes, emails) must be translated with the
+table above. The old SHAs no longer exist in this repository.
+
+Full new SHAs of the three October commits:
+    39a77e5   39a77e5eac4e1007b6edc8a923e4c2223d415c25   (EC50 fix; was a60be12)
+    05835ab   05835abcf9e020af4014d40d88f71cfc88b81d37   (was 31238e2)
+    41617d5   41617d59823b6a5192d1190332f010a79e299295   (was 0b1241b)
+
+Not renumbered, and therefore now wrong: src/06_generate_corrected_figures.py
+prints "commit a60be12" in the labels of figures/arm_a_pre_post_fix.{png,pdf},
+and the committed figure carries that text. The script and figure were left as
+they are; regenerate the figure with the label 39a77e5 before it is used.
+
+Limits of the rewrite. A force-push does not change forks, clones other people
+already made, or copies cached elsewhere. GitHub can keep unreachable commits
+on its servers, reachable by direct SHA, until it garbage-collects.
 
 ================================================================================
 END
