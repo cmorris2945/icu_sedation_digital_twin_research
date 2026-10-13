@@ -1,0 +1,258 @@
+======================================================================
+ARM B 4-UNIT RERUN WITHOUT DEFAULT-ASSIGNED PATIENTS
+======================================================================
+Started at: 2026-10-12 08:30:29
+Log file: arm_b_clean_4unit.log
+Python 3.11.4, pandas 2.3.3, NumPy 1.26.4, SciPy 1.17.1, scikit-learn 1.8.0, TensorFlow 2.21.0
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Arm B composition:
+   Arm B patients: 715 (train 572, test 143)
+   assigned the population default 3.08: 45 (train 37, test 8)
+   clean: train 535 patients (11630 instances), test 135 patients (2773 instances)
+   rerun: train 572 patients (12303 instances), test 143 patients (2953 instances)
+======================================================================
+Arm B clean: 670 fitted patients, defaults excluded
+======================================================================
+LSTM_UNITS = 4
+[08:30:29] units=4 config=FULL_HYBRID
+   seed=42: MAE=0.3462, R²=0.3980
+   seed=43: MAE=0.3405, R²=0.4037
+   seed=44: MAE=0.3389, R²=0.3966
+   seed=45: MAE=0.3610, R²=0.3977
+   seed=46: MAE=0.3372, R²=0.4085
+   seed=47: MAE=0.3515, R²=0.3976
+   seed=48: MAE=0.3488, R²=0.4002
+   seed=49: MAE=0.3479, R²=0.4019
+   seed=50: MAE=0.3404, R²=0.4013
+   seed=51: MAE=0.3480, R²=0.3938
+[08:34:26] units=4 config=PURE_ML
+   seed=42: MAE=0.3590, R²=0.3828
+   seed=43: MAE=0.3476, R²=0.3860
+   seed=44: MAE=0.3658, R²=0.3737
+   seed=45: MAE=0.3653, R²=0.3813
+   seed=46: MAE=0.3474, R²=0.3775
+   seed=47: MAE=0.3590, R²=0.3715
+   seed=48: MAE=0.3512, R²=0.3825
+   seed=49: MAE=0.3533, R²=0.3798
+   seed=50: MAE=0.3432, R²=0.3820
+   seed=51: MAE=0.3600, R²=0.3807
+======================================================================
+Arm B control: all 715 patients retrained in this environment
+======================================================================
+LSTM_UNITS = 4
+[08:38:25] units=4 config=FULL_HYBRID
+   seed=42: MAE=0.3716, R²=0.4039
+   seed=43: MAE=0.3416, R²=0.4313
+   seed=44: MAE=0.3502, R²=0.4262
+   seed=45: MAE=0.3495, R²=0.4284
+   seed=46: MAE=0.3523, R²=0.4223
+   seed=47: MAE=0.3486, R²=0.4221
+   seed=48: MAE=0.3451, R²=0.4293
+   seed=49: MAE=0.3411, R²=0.4319
+   seed=50: MAE=0.3398, R²=0.4346
+   seed=51: MAE=0.3674, R²=0.4068
+[08:42:31] units=4 config=PURE_ML
+   seed=42: MAE=0.3531, R²=0.4134
+   seed=43: MAE=0.3705, R²=0.4122
+   seed=44: MAE=0.3616, R²=0.4085
+   seed=45: MAE=0.3701, R²=0.3999
+   seed=46: MAE=0.3663, R²=0.4060
+   seed=47: MAE=0.3525, R²=0.4105
+   seed=48: MAE=0.3616, R²=0.4069
+   seed=49: MAE=0.3588, R²=0.4126
+   seed=50: MAE=0.3530, R²=0.4039
+   seed=51: MAE=0.3577, R²=0.4111
+
+Completed 40 new runs, skipped 0 previously completed
+
+Wrote results\processed\arm_b_clean_4unit_comparison.csv
+                                               0                                 1                2
+cohort                          arm_b_715_stored  arm_b_715_rerun_this_environment  arm_b_670_clean
+n_patients                                   715                               715              670
+n_train_patients                             572                               572              535
+n_test_patients                              143                               143              135
+n_train_instances                          12303                             12303            11630
+n_test_instances                            2953                              2953             2773
+lstm_units                                     4                                 4                4
+n_paired_runs                                 10                                10               10
+full_hybrid_mae_mean                      0.3471                            0.3507           0.3461
+full_hybrid_mae_sd_across_runs            0.0152                            0.0108           0.0071
+full_hybrid_r2_mean                       0.4285                            0.4237           0.3999
+pure_ml_mae_mean                          0.3698                            0.3605           0.3552
+pure_ml_mae_sd_across_runs                0.0230                            0.0068           0.0078
+pure_ml_r2_mean                           0.3995                            0.4085           0.3798
+absolute_diff_pure_minus_full             0.0227                            0.0098           0.0091
+pct_diff_pure_vs_full                     6.5311                            2.7943           2.6355
+n_runs_full_hybrid_better                     10                                 8               10
+wilcoxon_p                                0.0020                            0.0840           0.0020
+
+Finished at: 2026-10-12 08:46:33
+======================================================================
+ARM B 4-UNIT RERUN WITHOUT DEFAULT-ASSIGNED PATIENTS
+======================================================================
+Started at: 2026-10-12 09:47:02
+Log file: arm_b_clean_4unit.log
+Python 3.11.4, pandas 2.3.3, NumPy 1.26.4, SciPy 1.17.1, scikit-learn 1.8.0, TensorFlow 2.21.0
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Arm B composition:
+   Arm B patients: 715 (train 572, test 143)
+   assigned the population default 3.08: 45 (train 37, test 8)
+   clean: train 535 patients (11630 instances), test 135 patients (2773 instances)
+   rerun: train 572 patients (12303 instances), test 143 patients (2953 instances)
+
+Found 40 completed runs in results\processed\arm_b_clean_4unit_runs.csv; resuming
+======================================================================
+Arm B control repeat 'probe_a': all 715 patients
+======================================================================
+LSTM_UNITS = 4
+[09:47:02] units=4 config=PURE_ML
+   seed=46: MAE=0.3843, R²=0.3889
+   seed=47: MAE=0.3711, R²=0.3994
+
+Completed 2 new runs, skipped 0 previously completed
+
+Wrote results\processed\arm_b_clean_4unit_comparison.csv
+                                               0                                 1                2
+cohort                          arm_b_715_stored  arm_b_715_rerun_this_environment  arm_b_670_clean
+n_patients                                   715                               715              670
+n_train_patients                             572                               572              535
+n_test_patients                              143                               143              135
+n_train_instances                          12303                             12303            11630
+n_test_instances                            2953                              2953             2773
+lstm_units                                     4                                 4                4
+n_paired_runs                                 10                                10               10
+full_hybrid_mae_mean                      0.3471                            0.3507           0.3461
+full_hybrid_mae_sd_across_runs            0.0152                            0.0108           0.0071
+full_hybrid_r2_mean                       0.4285                            0.4237           0.3999
+pure_ml_mae_mean                          0.3698                            0.3605           0.3552
+pure_ml_mae_sd_across_runs                0.0230                            0.0068           0.0078
+pure_ml_r2_mean                           0.3995                            0.4085           0.3798
+absolute_diff_pure_minus_full             0.0227                            0.0098           0.0091
+pct_diff_pure_vs_full                     6.5311                            2.7943           2.6355
+n_runs_full_hybrid_better                     10                                 8               10
+wilcoxon_p                                0.0020                            0.0840           0.0020
+
+Finished at: 2026-10-12 09:47:41
+======================================================================
+ARM B 4-UNIT RERUN WITHOUT DEFAULT-ASSIGNED PATIENTS
+======================================================================
+Started at: 2026-10-12 09:47:46
+Log file: arm_b_clean_4unit.log
+Python 3.11.4, pandas 2.3.3, NumPy 1.26.4, SciPy 1.17.1, scikit-learn 1.8.0, TensorFlow 2.21.0
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Arm B composition:
+   Arm B patients: 715 (train 572, test 143)
+   assigned the population default 3.08: 45 (train 37, test 8)
+   clean: train 535 patients (11630 instances), test 135 patients (2773 instances)
+   rerun: train 572 patients (12303 instances), test 143 patients (2953 instances)
+
+Found 42 completed runs in results\processed\arm_b_clean_4unit_runs.csv; resuming
+======================================================================
+Arm B control repeat 'probe_b': all 715 patients
+======================================================================
+LSTM_UNITS = 4
+[09:47:47] units=4 config=PURE_ML
+   seed=46: MAE=0.3708, R²=0.4017
+   seed=47: MAE=0.3708, R²=0.4068
+
+Completed 2 new runs, skipped 0 previously completed
+
+Wrote results\processed\arm_b_clean_4unit_comparison.csv
+                                               0                                 1                2
+cohort                          arm_b_715_stored  arm_b_715_rerun_this_environment  arm_b_670_clean
+n_patients                                   715                               715              670
+n_train_patients                             572                               572              535
+n_test_patients                              143                               143              135
+n_train_instances                          12303                             12303            11630
+n_test_instances                            2953                              2953             2773
+lstm_units                                     4                                 4                4
+n_paired_runs                                 10                                10               10
+full_hybrid_mae_mean                      0.3471                            0.3507           0.3461
+full_hybrid_mae_sd_across_runs            0.0152                            0.0108           0.0071
+full_hybrid_r2_mean                       0.4285                            0.4237           0.3999
+pure_ml_mae_mean                          0.3698                            0.3605           0.3552
+pure_ml_mae_sd_across_runs                0.0230                            0.0068           0.0078
+pure_ml_r2_mean                           0.3995                            0.4085           0.3798
+absolute_diff_pure_minus_full             0.0227                            0.0098           0.0091
+pct_diff_pure_vs_full                     6.5311                            2.7943           2.6355
+n_runs_full_hybrid_better                     10                                 8               10
+wilcoxon_p                                0.0020                            0.0840           0.0020
+
+Finished at: 2026-10-12 09:48:26
+======================================================================
+ARM B 4-UNIT RERUN WITHOUT DEFAULT-ASSIGNED PATIENTS
+======================================================================
+Started at: 2026-10-12 09:48:44
+Log file: arm_b_clean_4unit.log
+Python 3.11.4, pandas 2.3.3, NumPy 1.26.4, SciPy 1.17.1, scikit-learn 1.8.0, TensorFlow 2.21.0
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Arm B composition:
+   Arm B patients: 715 (train 572, test 143)
+   assigned the population default 3.08: 45 (train 37, test 8)
+   clean: train 535 patients (11630 instances), test 135 patients (2773 instances)
+   rerun: train 572 patients (12303 instances), test 143 patients (2953 instances)
+
+Found 44 completed runs in results\processed\arm_b_clean_4unit_runs.csv; resuming
+======================================================================
+Arm B control repeat 'rerun2': all 715 patients
+======================================================================
+LSTM_UNITS = 4
+[09:48:44] units=4 config=FULL_HYBRID
+   seed=42: MAE=0.3590, R²=0.4178
+   seed=43: MAE=0.3527, R²=0.4305
+   seed=44: MAE=0.3349, R²=0.4358
+   seed=45: MAE=0.3501, R²=0.4330
+   seed=46: MAE=0.3432, R²=0.4290
+   seed=47: MAE=0.3719, R²=0.4132
+   seed=48: MAE=0.3612, R²=0.4231
+   seed=49: MAE=0.3447, R²=0.4284
+   seed=50: MAE=0.3517, R²=0.4154
+   seed=51: MAE=0.3834, R²=0.4030
+[09:52:14] units=4 config=PURE_ML
+   seed=42: MAE=0.3620, R²=0.4145
+   seed=43: MAE=0.3625, R²=0.4119
+   seed=44: MAE=0.3680, R²=0.4045
+   seed=45: MAE=0.3805, R²=0.4018
+   seed=46: MAE=0.3618, R²=0.4040
+   seed=47: MAE=0.3535, R²=0.4127
+   seed=48: MAE=0.3520, R²=0.4120
+   seed=49: MAE=0.3512, R²=0.4094
+   seed=50: MAE=0.3733, R²=0.3931
+   seed=51: MAE=0.3392, R²=0.4191
+
+Completed 20 new runs, skipped 0 previously completed
+
+Wrote results\processed\arm_b_clean_4unit_comparison.csv
+                                               0                                 1                                  2                3
+cohort                          arm_b_715_stored  arm_b_715_rerun_this_environment  arm_b_715_rerun2_this_environment  arm_b_670_clean
+n_patients                                   715                               715                                715              670
+n_train_patients                             572                               572                                572              535
+n_test_patients                              143                               143                                143              135
+n_train_instances                          12303                             12303                              12303            11630
+n_test_instances                            2953                              2953                               2953             2773
+lstm_units                                     4                                 4                                  4                4
+n_paired_runs                                 10                                10                                 10               10
+full_hybrid_mae_mean                      0.3471                            0.3507                             0.3553           0.3461
+full_hybrid_mae_sd_across_runs            0.0152                            0.0108                             0.0143           0.0071
+full_hybrid_r2_mean                       0.4285                            0.4237                             0.4229           0.3999
+pure_ml_mae_mean                          0.3698                            0.3605                             0.3604           0.3552
+pure_ml_mae_sd_across_runs                0.0230                            0.0068                             0.0120           0.0078
+pure_ml_r2_mean                           0.3995                            0.4085                             0.4083           0.3798
+absolute_diff_pure_minus_full             0.0227                            0.0098                             0.0051           0.0091
+pct_diff_pure_vs_full                     6.5311                            2.7943                             1.4364           2.6355
+n_runs_full_hybrid_better                     10                                 8                                  7               10
+wilcoxon_p                                0.0020                            0.0840                             0.3750           0.0020
+
+Finished at: 2026-10-12 09:55:35
