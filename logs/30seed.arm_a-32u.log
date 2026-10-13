@@ -1,0 +1,94 @@
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-12 11:17:07
+Log file: logs\30seed.arm_a-32u.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   interior, assigned the population default 3.08: 45; fitted: 670
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Configurations: FULL_HYBRID, PURE_ML
+Running 1 arm(s), 60 LSTM trainings total
+
+Found 27 completed runs in capacity_sweep_arm_a_full_30seed_results.csv; resuming
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_30seed_results.csv
+LSTM_UNITS = 32
+[11:17:07] units=32 config=FULL_HYBRID
+   seed=42: already done, skipping
+   seed=43: already done, skipping
+   seed=44: already done, skipping
+   seed=45: already done, skipping
+   seed=46: already done, skipping
+   seed=47: already done, skipping
+   seed=48: MAE=0.3576, R²=0.6208
+   seed=49: MAE=0.4119, R²=0.5900
+   seed=50: MAE=0.4354, R²=0.5581
+   seed=51: MAE=0.4452, R²=0.5519
+   seed=52: MAE=0.4157, R²=0.5890
+   seed=53: MAE=0.3779, R²=0.6141
+   seed=54: MAE=0.3775, R²=0.6107
+   seed=55: MAE=0.4490, R²=0.5435
+   seed=56: MAE=0.3763, R²=0.6048
+   seed=57: MAE=0.4090, R²=0.5909
+   seed=58: MAE=0.3893, R²=0.6075
+   seed=59: MAE=0.3988, R²=0.6018
+   seed=60: MAE=0.4071, R²=0.5962
+   seed=61: MAE=0.4034, R²=0.6005
+   seed=62: MAE=0.4532, R²=0.5560
+   seed=63: MAE=0.3501, R²=0.6118
+   seed=64: MAE=0.4076, R²=0.5939
+   seed=65: MAE=0.4045, R²=0.5975
+   seed=66: MAE=0.3845, R²=0.6120
+   seed=67: MAE=0.3763, R²=0.6136
+   seed=68: MAE=0.3669, R²=0.6191
+   seed=69: MAE=0.3908, R²=0.6071
+   seed=70: MAE=0.3900, R²=0.6007
+   seed=71: MAE=0.3965, R²=0.6032
+[12:19:32] units=32 config=PURE_ML
+   seed=42: MAE=0.3687, R²=0.6086
+   seed=43: MAE=0.3945, R²=0.5969
+   seed=44: MAE=0.3931, R²=0.5953
+   seed=45: MAE=0.4179, R²=0.5836
+   seed=46: MAE=0.3554, R²=0.6140
+   seed=47: MAE=0.4150, R²=0.5782
+   seed=48: MAE=0.3989, R²=0.6017
+   seed=49: MAE=0.4228, R²=0.5811
+   seed=50: MAE=0.4487, R²=0.5495
+   seed=51: MAE=0.4551, R²=0.5397
+   seed=52: MAE=0.4282, R²=0.5767
+   seed=53: MAE=0.4435, R²=0.5528
+   seed=54: MAE=0.4132, R²=0.5899
+   seed=55: MAE=0.5200, R²=0.4563
+   seed=56: MAE=0.3898, R²=0.5942
+   seed=57: MAE=0.4062, R²=0.5938
+   seed=58: MAE=0.3613, R²=0.6117
+   seed=59: MAE=0.4046, R²=0.5945
+   seed=60: MAE=0.3795, R²=0.5992
+   seed=61: MAE=0.4011, R²=0.5967
+   seed=62: MAE=0.4620, R²=0.5582
+   seed=63: MAE=0.3743, R²=0.5973
+   seed=64: MAE=0.3717, R²=0.6036
+   seed=65: MAE=0.3763, R²=0.6033
+   seed=66: MAE=0.3598, R²=0.6133
+   seed=67: MAE=0.3724, R²=0.6053
+   seed=68: MAE=0.3717, R²=0.6086
+   seed=69: MAE=0.3787, R²=0.6060
+   seed=70: MAE=0.4296, R²=0.5722
+   seed=71: MAE=0.3956, R²=0.5974
+
+Completed 54 new runs, skipped 6 previously completed
+
+Finished at: 2026-10-12 13:02:53

@@ -1,0 +1,35 @@
+======================================================================
+LSTM CAPACITY SWEEP
+======================================================================
+Started at: 2026-10-12 10:14:39
+Log file: three_arm_capacity_sweep_30seed.part-arm_a-8u.log
+
+
+Loading features from cached_features.pkl...
+   30931 prediction instances from 1489 patients
+
+Patient classification from regenerated cache:
+   pinned-low: 774
+   pinned-high: 0
+   interior: 715
+   interior, assigned the population default 3.08: 45; fitted: 670
+   arm C size-matched sample: 715 (sampling seed 42)
+Confirmed: no pinned-high values remain
+
+Configurations: FULL_HYBRID, PURE_ML
+Running 1 arm(s), 60 LSTM trainings total
+
+======================================================================
+ARM A: full cohort
+======================================================================
+   Patients: 1489; train 1191 (24522 instances), test 298 (6409 instances)
+   Results: capacity_sweep_arm_a_full_30seed_results.csv
+LSTM_UNITS = 8
+[10:14:40] units=8 config=FULL_HYBRID
+   seed=42: MAE=0.3529, R²=0.6159
+   seed=43: MAE=0.3549, R²=0.6164
+   seed=44: MAE=0.3559, R²=0.6207
+   seed=45: MAE=0.3898, R²=0.6016
+   seed=46: MAE=0.3569, R²=0.6192
+   seed=47: MAE=0.3958, R²=0.6000
+   seed=48: MAE=0.3794, R²=0.6131
