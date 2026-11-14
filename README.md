@@ -1,10 +1,10 @@
 # ICU Sedation Digital Twin Research
 
+![An ICU infusion pump and bedside workstation with illustrative drug concentration curves](docs/assets/icu-sedation-digital-twin.webp)
+
+*Concept illustration of ICU infusion history and modeled drug exposure.*
+
 This repository contains the complete code, analyses, and documentation for research investigating whether **mechanistic pharmacokinetic-pharmacodynamic modeling can be combined with machine learning to improve ICU sedation prediction**. The work is part of a PhD research program at the University of Florida, Department of Computer and Information Science and Engineering.
-
-
-<img width="794" height="400" alt="image" src="https://github.com/user-attachments/assets/8384918a-80ad-4d7b-b682-a10d34b5b43a" />
-
 
 ## What This Research Is About
 
