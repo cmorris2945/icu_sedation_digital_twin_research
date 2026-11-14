@@ -1,6 +1,6 @@
 # ICU Sedation Digital Twin Research
 
-![An ICU infusion pump and bedside workstation with illustrative drug concentration curves](docs/assets/icu-sedation-digital-twin.webp)
+![An ICU infusion pump and workstation with illustrative drug concentration curves, with a nurse by the window](docs/assets/icu-sedation-digital-twin.webp)
 
 *Concept illustration of ICU infusion history and modeled drug exposure.*
 
